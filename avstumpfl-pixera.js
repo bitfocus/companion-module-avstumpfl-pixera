@@ -161,8 +161,10 @@ instance.prototype.incomingData = function(data) {
 
 				case 14 :
 					var result = rcv_cmd['result'];
-					for(var i = 0; i<result.length;i++){
-						self.CHOICES_SCREENNAME.push({label: result[i],id:self.CHOICES_SCREENHANDLE[i]});
+					if(result != null){
+						for(var i = 0; i<result.length;i++){
+							self.CHOICES_SCREENNAME.push({label: result[i],id:self.CHOICES_SCREENHANDLE[i]});
+						}
 					}
 					self.actions();
 					break;
