@@ -13,26 +13,18 @@ function instance(system, id, config) {
 	return self;
 }
 
-
-instance.prototype.updateConfig = function(config) {
-	let self = this;
+instance.prototype.updateConfig = function (config) {
+	var self = this;
+	//debug('update config');
 
 	// Reconnect to Pixera if the IP changed
 	if (self.config.host !== config.host || self.isConnected() === false) {
 		self.config.host = config.host;
+		self.config.port = config.port;
 		self.init_tcp();
+		self.init_feedbacks();
 	}
-
-	if (self.socket !== undefined) {
-		self.socket.destroy();
-		delete self.socket;
-	}
-
-	// Keep config around
 	self.config = config;
-
-	// Build actions
-	self.actions();
 }
 
 instance.prototype.init = function() {
@@ -40,6 +32,8 @@ instance.prototype.init = function() {
 
 	debug = self.debug;
 	log = self.log;
+
+	//debug('init');
 
 	self.init_tcp();
 	self.init_feedbacks();
@@ -299,6 +293,8 @@ instance.prototype.incomingData = function(data) {
 instance.prototype.init_tcp = function() {
 	var self = this;
 
+	//debug('network init');
+
 	if (self.socket !== undefined) {
 		self.socket.destroy();
 		delete self.socket;
@@ -319,6 +315,7 @@ instance.prototype.init_tcp = function() {
 		});
 
 		self.socket.on('connect', function() {
+			self.init_feedbacks();
 			self.status(self.STATE_OK);
 			self.init_variables();
 			self.init_timelines();
@@ -396,6 +393,8 @@ instance.prototype.destroy = function() {
 	let self = this;
 
 	clearInterval(self.retry_interval);
+	var feedbacks = {};
+	self.setFeedbackDefinitions(feedbacks);
 	setTimeout(function() {
 		debug('destroy', self.id);
 
@@ -913,17 +912,6 @@ function roughScale(x, base) {
 	var parsed = parseInt(x, base);
 	if (isNaN(parsed)) { return 0 }
 	return parsed;
-}
-
-
-instance.prototype.updateConfig = function (config) {
-	var self = this;
-
-	if (self.config.host !== config.host || self.isConnected() === false) {
-		self.config.host = config.host;
-		self.init_tcp();
-	}
-	self.config = config;
 }
 
 instance.prototype.init_feedbacks = function() {
