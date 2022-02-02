@@ -232,7 +232,7 @@ instance.prototype.incomingData = function(data) {
 					case 9999 :
 						var result = rcv_cmd['result'];
 						if(result != null){
-							system.emit('log', 'Pixera', 'info', result);
+							self.log('info', result);
 						}
 						break;
 
