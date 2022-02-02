@@ -8,12 +8,19 @@
 	"manufacturer": "AV Stumpfl",
 	"product": "Pixera",
 	"shortname": "Pixera",
-	"homepage": "https://avstumpfl.com/pixera/",
+	"homepage": "https://github.com/bitfocus/companion-module-avstumpfl-pixera#readme",
 	"description": "Control AV Stumpfl Pixera",
 	"main": "avstumpfl-pixera.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": "Benni M.<info@benni-m.de> & Jonas Stade",
-	"license": "MIT"
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/bitfocus/companion-module-avstumpfl-pixera/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-avstumpfl-pixera.git"
+	}
 }
