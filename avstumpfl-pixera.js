@@ -1,5 +1,6 @@
 var tcp = require('../../tcp');
 var instance_skel = require('../../instance_skel');
+const { disconnect } = require('process');
 var debug;
 var log;
 
@@ -15,16 +16,13 @@ function instance(system, id, config) {
 
 instance.prototype.updateConfig = function (config) {
 	var self = this;
-	//debug('update config');
+	debug('update config');
 
-	// Reconnect to Pixera if the IP changed
-	if (self.config.host !== config.host || self.isConnected() === false) {
-		self.config.host = config.host;
-		self.config.port = config.port;
-		self.init_tcp();
-		self.init_feedbacks();
-	}
 	self.config = config;
+
+	self.init_tcp();
+	self.init_feedbacks();
+
 }
 
 instance.prototype.init = function() {
@@ -111,7 +109,7 @@ instance.prototype.incomingData = function(data) {
 		for(var j = 1; j < receivebufferarray.length;j++){
 			try{
 				var rcv_cmd = JSON.parse(receivebufferarray[j].substr(4).toString());
-				//debug('rec', rcv_cmd);    //debug for receive command
+				debug('rec', rcv_cmd);    //debug for receive command
 				switch (rcv_cmd["id"]) {
 
 					case 11 :  //get timeline list
@@ -165,7 +163,17 @@ instance.prototype.incomingData = function(data) {
 						}
 						self.actions();
 						break;
-
+					case 18 :
+						var result = rcv_cmd['result'];
+						if(result != null){
+							var json_send = {'jsonrpc':'2.0', 'id':19, 'method':'Pixera.Timelines.Timeline.blendToTime', 'params':{'handle':self.CHOICES_BLENDNAME_TIMELINE, 'goalTime':result, 'blendDuration':self.CHOICES_BLENDNAME_FRAMES}};
+							let buf = undefined;
+							buf = self.prependHeader(JSON.stringify(json_send));
+							if (buf !== undefined) {
+								self.send(buf);
+							}
+						}
+						break;
 					case 29 :
 						var result = rcv_cmd['result'];
 						if(result != null){
@@ -216,11 +224,10 @@ instance.prototype.incomingData = function(data) {
 							}
 						}
 						break;
-
-					case 18 :
+					case 39 : //layer mute
 						var result = rcv_cmd['result'];
 						if(result != null){
-							var json_send = {'jsonrpc':'2.0', 'id':19, 'method':'Pixera.Timelines.Timeline.blendToTime', 'params':{'handle':self.CHOICES_BLENDNAME_TIMELINE, 'goalTime':result, 'blendDuration':self.CHOICES_BLENDNAME_FRAMES}};
+							var json_send = {'jsonrpc':'2.0', 'id':0, 'method':'Pixera.Timelines.Layer.muteLayer', 'params':{'handle':result, }};
 							let buf = undefined;
 							buf = self.prependHeader(JSON.stringify(json_send));
 							if (buf !== undefined) {
@@ -228,7 +235,61 @@ instance.prototype.incomingData = function(data) {
 							}
 						}
 						break;
-
+					case 40 : //layer unmute
+						var result = rcv_cmd['result'];
+						if(result != null){
+							var json_send = {'jsonrpc':'2.0', 'id':0, 'method':'Pixera.Timelines.Layer.unMuteLayer', 'params':{'handle':result}};
+							let buf = undefined;
+							buf = self.prependHeader(JSON.stringify(json_send));
+							if (buf !== undefined) {
+								self.send(buf);
+							}
+						}
+						break;
+					case 41 : //layer volume mute
+						var result = rcv_cmd['result'];
+						if(result != null){
+							var json_send = {'jsonrpc':'2.0', 'id':0, 'method':'Pixera.Timelines.Layer.muteAudio', 'params':{'handle':result}};
+							let buf = undefined;
+							buf = self.prependHeader(JSON.stringify(json_send));
+							if (buf !== undefined) {
+								self.send(buf);
+							}
+						}
+						break;
+					case 42 : //layer volume unmute
+						var result = rcv_cmd['result'];
+						if(result != null){
+							var json_send = {'jsonrpc':'2.0', 'id':0, 'method':'Pixera.Timelines.Layer.unMuteAudio', 'params':{'handle':result}};
+							let buf = undefined;
+							buf = self.prependHeader(JSON.stringify(json_send));
+							if (buf !== undefined) {
+								self.send(buf);
+							}
+						}
+					case 43 : //layer reset
+						var result = rcv_cmd['result'];
+						if(result != null){
+							var json_send = {'jsonrpc':'2.0', 'id':0, 'method':'Pixera.Timelines.Layer.resetLayer', 'params':{'handle':result}};
+							let buf = undefined;
+							buf = self.prependHeader(JSON.stringify(json_send));
+							if (buf !== undefined) {
+								self.send(buf);
+							}
+						}
+						break;
+					case 44 : //blend to this
+						var result = rcv_cmd['result'];
+						if(result != null){
+							var json_send = {'jsonrpc':'2.0', 'id':0, 'method':'Pixera.Timelines.Cue.blendToThis', 'params':{'handle':result, 'blendDuration': self.CHOICES_BLENDNAME_FRAMES}};
+							debug(json_send);
+							let buf = undefined;
+							buf = self.prependHeader(JSON.stringify(json_send));
+							if (buf !== undefined) {
+								self.send(buf);
+							}
+						}
+						break;
 					case 9999 :
 						var result = rcv_cmd['result'];
 						if(result != null){
@@ -294,8 +355,9 @@ instance.prototype.init_tcp = function() {
 	var self = this;
 
 	//debug('network init');
-
+	debug('socket init');
 	if (self.socket !== undefined) {
+		clearInterval(self.retry_interval);
 		self.socket.destroy();
 		delete self.socket;
 	}
@@ -306,6 +368,13 @@ instance.prototype.init_tcp = function() {
 		self.socket.on('status_change', function(status, message) {
 			self.status(status, message);
 		});
+		
+		self.socket.on('disconnect', function(err) {
+			debug("Network error", err);
+			self.status(self.STATE_ERROR, err);
+			self.log('error',"Network error: " + err.message);
+					clearInterval(self.retry_interval);
+		});
 
 		self.socket.on('error', function(err) {
 			debug("Network error", err);
@@ -314,14 +383,22 @@ instance.prototype.init_tcp = function() {
 					clearInterval(self.retry_interval);
 		});
 
+		self.socket.on('close',function() {
+			debug("Close Connection.");
+			clearInterval(self.retry_interval);
+		})
+
 		self.socket.on('connect', function() {
 			self.init_feedbacks();
 			self.status(self.STATE_OK);
 			self.init_variables();
 			self.init_timelines();
 			self.init_screens();
-			self.retry_interval = setInterval(self.retry.bind(self), 40);//ms for pool timelinestate
-			self.retry();
+			if(self.config.polling)
+			{
+				self.retry_interval = setInterval(self.retry.bind(self), 40);//ms for pool timelinestate
+				self.retry();
+			}
 			debug("Connected");
 		})
 
@@ -384,6 +461,13 @@ instance.prototype.config_fields = function() {
 			label: 'Port',
 			default: 1400,
 			regex: self.REGEX_NUMBER
+		},
+		{
+			type: 'checkbox',
+			id: 'polling',
+			label: 'Enable Polling feedbacks?',
+			width: 15,
+			default: false,
 		}
 	];
 }
@@ -443,6 +527,12 @@ instance.prototype.actions = function(system) {
 					id: 'timelinename_next',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
+				},
+				{
+					type: 'checkbox',
+					label: 'Ignore Properties',
+					id: 'timelinename_next_ignore',
+					default: false
 				}
 			]
 		},
@@ -456,6 +546,12 @@ instance.prototype.actions = function(system) {
 					id: 'timelinename_prev',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
+				},
+				{
+					type: 'checkbox',
+					label: 'Ignore Properties',
+					id: 'timelinename_prev_ignore',
+					default: false
 				}
 			]
 		},
@@ -497,14 +593,10 @@ instance.prototype.actions = function(system) {
 					choices: self.CHOICES_SCREENNAME
 				},
 				{
-					type: 'dropdown',
+					type: 'checkbox',
 					label: 'Screen Visible',
 					id: 'visible_screen_state',
-					default: 'true',
-					choices: [
-						{id: true, label: true},
-						{id: false, label: false}
-					]
+					default: true
 				}
 			]
 		},
@@ -533,14 +625,10 @@ instance.prototype.actions = function(system) {
 					choices: self.CHOICES_SCREENNAME
 				},
 				{
-					type: 'dropdown',
+					type: 'checkbox',
 					label: 'Screen Is Projectable',
 					id: 'visible_projectable_state',
-					default: 'true',
-					choices: [
-						{id: true, label: true},
-						{id: false, label: false}
-					]
+					default: true
 				}
 			]
 		},
@@ -699,6 +787,46 @@ instance.prototype.actions = function(system) {
 			]
 		},
 
+		'blendNextCue': {
+			label: 'Blend to Next Cue',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline Name',
+					id: 'timelinename_blendcuename',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME
+				},
+				{
+					type: 'textinput',
+					label: 'Blendtime in Sec',
+					id: 'blend_name_frames',
+					default: 1.0,
+					regex:   self.REGEX_FLOAT
+				}
+			]
+		},
+
+		'blendPrevCue': {
+			label: 'Blend to Prev Cue',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline Name',
+					id: 'timelinename_blendcuename',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME
+				},
+				{
+					type: 'textinput',
+					label: 'Blendtime in Sec',
+					id: 'blend_name_frames',
+					default: 1.0,
+					regex:   self.REGEX_FLOAT
+				}
+			]
+		},
+
 		'timeline_opacity': {
 			label: 'Timeline Opacity',
 			options: [
@@ -719,6 +847,30 @@ instance.prototype.actions = function(system) {
 			]
 		},
 
+		'timeline_setsmpte': {
+			label: 'Timeline Set SMPTE',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline Name',
+					id: 'timelinename_timelineopacity',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME
+				},
+				{
+					type: 'dropdown',
+					label: 'State',
+					id: 'timeline_smpte_state',
+					default: 0,
+					choices:[
+						{id: 0, label: 'none'},
+						{id: 1, label: 'receive'},
+						{id: 2, label: 'send'},
+					]
+				}
+			]
+		},
+
 		'timeline_fadeopacity': {
 			label: 'Timeline Fade Opacity',
 			options: [
@@ -730,25 +882,94 @@ instance.prototype.actions = function(system) {
 					choices: self.CHOICES_TIMELINENAME
 				},
 				{
-					type: 'textinput',
-					label: 'From',
-					id: 'timeline_fadeopacity_old',
-					default: '0.0',
-					regex:   self.REGEX_FLOAT
+					type: 'checkbox',
+					label: 'FadeIn',
+					id: 'timeline_fadeIn',
+					default: true
 				},
 				{
 					type: 'textinput',
-					label: 'To',
-					id: 'timeline_fadeopacity_new',
-					default: '1.0',
-					regex:   self.REGEX_FLOAT
-				},
-				{
-					type: 'textinput',
-					label: 'Time in Sec',
+					label: 'Time in Frames',
 					id: 'timeline_fadeopacity_time',
-					default: '1.0',
+					default: '60',
+					regex:   self.REGEX_INT
+				}
+			]
+		},
+
+		'layerReset':{
+			label: 'Layer Reset',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Layer Path',
+					id: 'layerPath',
+					default: 'Timeline 1.Layer 1',
+				}
+			]
+		},
+
+		'layerMute':{
+			label: 'Layer Mute',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Layer Path',
+					id: 'layerPath',
+					default: 'Timeline 1.Layer 1',
+				},
+				{
+					type: 'dropdown',
+					label: 'Parameter',
+					id: 'layerParameterMute',
+					default: 'muteLayer',
+					choices:[
+						{id: 'muteLayer', label: 'Mute Layer'},
+						{id: 'muteVolume', label: 'Mute Volume'},
+					]
+				},
+				{
+					type: 'checkbox',
+					label: 'Mute',
+					id: 'layerState',
+					default: true,
+				}
+			]
+		},
+
+		'layerParameter': {
+			label: 'Layer Paramter',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Parameter Path',
+					id: 'layerPath',
+					default: 'Timeline 1.Layer 1.Opacity',
+				},
+				{
+					type: 'textinput',
+					label: 'Value',
+					id: 'layerValue',
+					default: 1.0,
 					regex:   self.REGEX_FLOAT
+				}
+			]
+		},
+		
+		'controlAction': {
+			label: 'Control Call Action',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Control Path',
+					id: 'controlPath',
+					default: 'pics.info'
+				},
+				{
+					type: 'textinput',
+					label: 'arguments',
+					id: 'controlArguments',
+					default: '"Hello World" 1 12.7 false'
 				}
 			]
 		},
@@ -776,51 +997,50 @@ instance.prototype.action = function(action) {
 
 	let buf = undefined;
 	let message = '';
+	var json_send = undefined;
 
 	switch (action.action) {
 		case 'timeline_transport':
-			var json_send = {'jsonrpc':'2.0', 'id':22, 'method':'Pixera.Timelines.Timeline.setTransportMode', 'params':{'handle':parseInt(opt.timelinename_state), 'mode':parseInt(opt.mode)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':22, 'method':'Pixera.Timelines.Timeline.setTransportMode', 'params':{'handle':parseInt(opt.timelinename_state), 'mode':parseInt(opt.mode)}};
 			break;
 
 		case 'timeline_next_cue':
-			var json_send = {'jsonrpc':'2.0', 'id':23, 'method':'Pixera.Timelines.Timeline.moveToNextCue', 'params':{'handle':parseInt(opt.timelinename_next)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			if(!opt.timelinename_next_ignore)
+				json_send = {'jsonrpc':'2.0', 'id':23, 'method':'Pixera.Timelines.Timeline.moveToNextCue', 'params':{'handle':parseInt(opt.timelinename_next)}};
+			else
+				json_send = {'jsonrpc':'2.0', 'id':23, 'method':'Pixera.Timelines.Timeline.moveToNextCueIgnoreProperties', 'params':{'handle':parseInt(opt.timelinename_next)}};
 			break;
 
 		case 'timeline_prev_cue':
-			var json_send = {'jsonrpc':'2.0', 'id':24, 'method':'Pixera.Timelines.Timeline.moveToPreviousCue', 'params':{'handle':parseInt(opt.timelinename_prev)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			if(!opt.timelinename_prev_ignore)
+				json_send = {'jsonrpc':'2.0', 'id':24, 'method':'Pixera.Timelines.Timeline.moveToPreviousCue', 'params':{'handle':parseInt(opt.timelinename_prev)}};
+			else
+			json_send = {'jsonrpc':'2.0', 'id':24, 'method':'Pixera.Timelines.Timeline.moveToPreviousCueIgnoreProperties', 'params':{'handle':parseInt(opt.timelinename_prev)}};
+
 			break;
 
 		case 'timeline_ignore_next_cue':
-			var json_send = {'jsonrpc':'2.0', 'id':25, 'method':'Pixera.Timelines.Timeline.ignoreNextCue', 'params':{'handle':parseInt(opt.timelinename_ignore)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':25, 'method':'Pixera.Timelines.Timeline.ignoreNextCue', 'params':{'handle':parseInt(opt.timelinename_ignore)}};
 			break;
 
 		case 'timeline_store':
-			var json_send = {'jsonrpc':'2.0', 'id':26, 'method':'Pixera.Timelines.Timeline.store', 'params':{'handle':parseInt(opt.timelinename_store)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':26, 'method':'Pixera.Timelines.Timeline.store', 'params':{'handle':parseInt(opt.timelinename_store)}};
 			break;
 
 		case 'screen_visible':
-			var json_send = {'jsonrpc':'2.0', 'id':27, 'method':'Pixera.Screens.Screen.setIsVisible', 'params':{'handle':parseInt(opt.visible_screen_name),'isVisible':JSON.parse(opt.visible_screen_state)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':27, 'method':'Pixera.Screens.Screen.setIsVisible', 'params':{'handle':parseInt(opt.visible_screen_name),'isVisible':JSON.parse(opt.visible_screen_state)}};
 			break;
 
 		case 'screen_projectable':
-			var json_send = {'jsonrpc':'2.0', 'id':28, 'method':'Pixera.Screens.Screen.setIsProjectable', 'params':{'handle':parseInt(opt.visible_screen_name),'isProjectable':JSON.parse(opt.visible_projectable_state)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':28, 'method':'Pixera.Screens.Screen.setIsProjectable', 'params':{'handle':parseInt(opt.visible_screen_name),'isProjectable':JSON.parse(opt.visible_projectable_state)}};
 			break;
 
 		case 'goto_cue_name':
-			var json_send = {'jsonrpc':'2.0', 'id':29, 'method':'Pixera.Timelines.Timeline.getCueFromName', 'params':{'handle':parseInt(opt.timelinename_cuename),'name':opt.cue_name}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':29, 'method':'Pixera.Timelines.Timeline.getCueFromName', 'params':{'handle':parseInt(opt.timelinename_cuename),'name':opt.cue_name}};
 			break;
 
 		case 'goto_cue_index':
-			var json_send = {'jsonrpc':'2.0', 'id':30, 'method':'Pixera.Compound.applyCueAtIndexOnTimelineAtIndex', 'params':{'cueIndex':parseInt(opt.cue_index-1),'timelineIndex':parseInt(opt.timelinecue_index-1)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':30, 'method':'Pixera.Compound.applyCueAtIndexOnTimelineAtIndex', 'params':{'cueIndex':parseInt(opt.cue_index-1),'timelineIndex':parseInt(opt.timelinecue_index-1)}};
 			break;
 
 		case 'goto_time':
@@ -830,8 +1050,7 @@ instance.prototype.action = function(action) {
 			self.CHOICES_GOTOTIME_F = parseInt(opt.goto_time_f);
 
 			self.CHOICES_GOTOTIME_TIMELINE = parseInt(opt.goto_time_timelinename);
-			var json_send = {'jsonrpc':'2.0', 'id':31, 'method':'Pixera.Timelines.Timeline.getFps', 'params':{'handle':parseInt(opt.goto_time_timelinename)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':31, 'method':'Pixera.Timelines.Timeline.getFps', 'params':{'handle':parseInt(opt.goto_time_timelinename)}};
 			break;
 
 		case 'blend_to_time':
@@ -842,43 +1061,123 @@ instance.prototype.action = function(action) {
 			self.CHOICES_BLENDTIME_FRAMES = parseInt(opt.blend_time_frames);
 
 			self.CHOICES_BLENDTIME_TIMELINE = parseInt(opt.blend_time_timelinename);
-			var json_send = {'jsonrpc':'2.0', 'id':32, 'method':'Pixera.Timelines.Timeline.getFps', 'params':{'handle':parseInt(opt.blend_time_timelinename)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':32, 'method':'Pixera.Timelines.Timeline.getFps', 'params':{'handle':parseInt(opt.blend_time_timelinename)}};
 			break;
 
 		case 'blend_cue_name':
 			self.CHOICES_BLENDNAME_TIMELINE = parseInt(opt.timelinename_blendcuename);
 			self.CHOICES_BLENDNAME_FRAMES = parseInt(opt.blend_name_frames);
 
-			var json_send = {'jsonrpc':'2.0', 'id':33, 'method':'Pixera.Timelines.Timeline.getCueFromName', 'params':{'handle':parseInt(opt.timelinename_blendcuename),'name':opt.blend_cue_name}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':33, 'method':'Pixera.Timelines.Timeline.getCueFromName', 'params':{'handle':parseInt(opt.timelinename_blendcuename),'name':opt.blend_cue_name}};
 			break;
 
 		case 'screen_refresh_mapping':
-			var json_send = {'jsonrpc':'2.0', 'id':34, 'method':'Pixera.Screens.Screen.triggerRefreshMapping', 'params':{'handle':parseInt(opt.refresh_screen_name)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':34, 'method':'Pixera.Screens.Screen.triggerRefreshMapping', 'params':{'handle':parseInt(opt.refresh_screen_name)}};
 			break;
 
 		case 'timeline_opacity':
-			var json_send = {'jsonrpc':'2.0', 'id':35, 'method':'Pixera.Timelines.Timeline.setOpacity', 'params':{'handle':parseInt(opt.timelinename_timelineopacity),'value':parseFloat(opt.timeline_opacity)}};
-			buf = self.prependHeader(JSON.stringify(json_send));
+			json_send = {'jsonrpc':'2.0', 'id':35, 'method':'Pixera.Timelines.Timeline.setOpacity', 'params':{'handle':parseInt(opt.timelinename_timelineopacity),'value':parseFloat(opt.timeline_opacity)}};
 			break;
 
 
 		case 'timeline_fadeopacity':
-			var times = parseFloat(opt.timeline_fadeopacity_time) * 1000 / 40;
-			var add_value = (parseFloat(opt.timeline_fadeopacity_new) - parseFloat(opt.timeline_fadeopacity_old)) / parseFloat(times);
-			var json = {'old_value': parseFloat(opt.timeline_fadeopacity_old), 'new_value':parseFloat(opt.timeline_fadeopacity_new),'times':parseFloat(times),'handle':parseInt(opt.timelinename_timelineopacity),'count':0, 'add_value':add_value};
-			self.CHOICES_FADELIST.push(json);
+			json_send = {'jsonrpc':'2.0', 'id':36, 'method':'Pixera.Timelines.Timeline.startOpacityAnimation', 'params':{'handle':parseInt(opt.timelinename_timelineopacity),'fadeIn': opt.timeline_fadeIn, 'fullFadeDuration': parseFloat(opt.timeline_fadeopacity_time)}};
 			break;
 
+		case 'timeline_setsmpte':
+			json_send = {'jsonrpc':'2.0', 'id':37, 'method':'Pixera.Timelines.Timeline.setSmpteMode', 'params':{'handle':parseInt(opt.timelinename_timelineopacity),'mode': parseInt(opt.timeline_smpte_state)}};
+			break;
+
+		case 'layerParameter':
+			json_send = {'jsonrpc':'2.0', 'id':38, 'method':'Pixera.Compound.setParamValue', 'params':{'path': opt.layerPath ,'value': parseFloat(opt.layerValue)}};
+			break;	
+
+		case 'layerMute':
+			if(opt.layerParameterMute === 'muteLayer')
+			{
+				if(opt.layerState === true)
+					json_send = {'jsonrpc':'2.0', 'id':39, 'method':'Pixera.Timelines.Layer.getInst', 'params':{'instancePath': opt.layerPath}};
+				else
+					json_send = {'jsonrpc':'2.0', 'id':40, 'method':'Pixera.Timelines.Layer.getInst', 'params':{'instancePath': opt.layerPath}};
+			}
+			else if(opt.layerParameterMute == 'muteVolume')
+			{
+				if(opt.layerState === true)
+					json_send = {'jsonrpc':'2.0', 'id':41, 'method':'Pixera.Timelines.Layer.getInst', 'params':{'instancePath': opt.layerPath}};		
+				else
+					json_send = {'jsonrpc':'2.0', 'id':42, 'method':'Pixera.Timelines.Layer.getInst', 'params':{'instancePath': opt.layerPath}};		
+			}	
+
+			break;
+		
+		case 'layerReset':
+			json_send = {'jsonrpc':'2.0', 'id':43, 'method':'Pixera.Timelines.Layer.getInst', 'params':{'instancePath': opt.layerPath}};		
+			break;	
+
+		case 'blendNextCue':
+			self.CHOICES_BLENDNAME_FRAMES = parseFloat(opt.blend_name_frames);
+			json_send = {'jsonrpc':'2.0', 'id':44, 'method':'Pixera.Timelines.Timeline.getCueNext', 'params':{'handle': parseInt(opt.timelinename_blendcuename)}};		
+			break;	
+
+		case 'blendPrevCue':
+			self.CHOICES_BLENDNAME_FRAMES = parseFloat(opt.blend_name_frames);
+			json_send = {'jsonrpc':'2.0', 'id':44, 'method':'Pixera.Timelines.Timeline.getCuePrevious', 'params':{'handle': parseInt(opt.timelinename_blendcuename)}};		
+			break;	
+	
+		case 'controlAction':
+
+			let args = [];
+			self.system.emit('variable_parse', opt.controlArguments, function (value) {
+				args = value
+			})
+			let arguments = args.replace(/“/g, '"').replace(/”/g, '"').split(' ');
+
+			if (arguments.length) {
+				args = [];
+			}
+
+			for (let i = 0; i < arguments.length; i++) {
+				if (arguments[i].length == 0)
+					continue;
+				if(arguments[i] === "true")
+					args.push(true);
+				else if(arguments[i] === "false")
+					args.push(false);
+				else if (isNaN(arguments[i])) {
+					var str = arguments[i];
+					if (str.startsWith("\""))
+					{  //a quoted string..
+						  while (!arguments[i].endsWith("\""))
+							{
+								 i++;
+								 str += " "+arguments[i];
+							}
+
+					}
+					args.push(str.replace(/"/g, '').replace(/'/g, ''));
+				}
+				else if (arguments[i].indexOf('.') > -1) {
+					args.push(parseFloat(arguments[i]));
+				}
+				else {
+					args.push(parseInt(arguments[i]));
+				}
+			}
+
+			json_send = {'jsonrpc':'2.0', 'id':37, 'method': opt.controlPath , 'params':args};
+			break;	
 
 		case 'api':
-			var json_send = JSON.parse(opt.api_methode);
+			json_send = JSON.parse(opt.api_methode);
 			json_send['id'] = 9999;
-			buf = self.prependHeader(JSON.stringify(json_send));
 			break;
 
+		}
+
+		if(json_send !== undefined)
+		{
+			debug(JSON.stringify(json_send));
+			buf = self.prependHeader(JSON.stringify(json_send));
 		}
 
 		if (buf !== undefined) {
