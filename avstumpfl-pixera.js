@@ -648,28 +648,24 @@ instance.prototype.actions = function(system) {
 					label: 'Hour',
 					id: 'goto_time_h',
 					default: '0',
-					regex:   self.REGEX_NUMBER
 				},
 				{
 					type: 'textinput',
 					label: 'Minute',
 					id: 'goto_time_m',
 					default: '0',
-					regex:   self.REGEX_NUMBER
 				},
 				{
 					type: 'textinput',
 					label: 'Second',
 					id: 'goto_time_s',
 					default: '0',
-					regex:    self.REGEX_NUMBER
 				},
 				{
 					type: 'textinput',
 					label: 'Frame',
 					id: 'goto_time_f',
 					default: '0',
-					regex:   self.REGEX_NUMBER
 				}
 			]
 		},
@@ -728,35 +724,30 @@ instance.prototype.actions = function(system) {
 					label: 'Hour',
 					id: 'blend_time_h',
 					default: '0',
-					regex:   self.REGEX_NUMBER
 				},
 				{
 					type: 'textinput',
 					label: 'Minute',
 					id: 'blend_time_m',
 					default: '0',
-					regex:   self.REGEX_NUMBER
 				},
 				{
 					type: 'textinput',
 					label: 'Second',
 					id: 'blend_time_s',
 					default: '0',
-					regex:   self.REGEX_NUMBER
 				},
 				{
 					type: 'textinput',
 					label: 'Frame',
 					id: 'blend_time_f',
 					default: '0',
-					regex:   self.REGEX_NUMBER
 				},
 				{
 					type: 'textinput',
 					label: 'Blendtime in Frames',
 					id: 'blend_time_frames',
 					default: '0',
-					regex:   self.REGEX_NUMBER
 				}
 			]
 		},
@@ -782,7 +773,6 @@ instance.prototype.actions = function(system) {
 					label: 'Blendtime in Frames',
 					id: 'blend_name_frames',
 					default: 0,
-					regex:   self.REGEX_NUMBER
 				}
 			]
 		},
@@ -998,6 +988,7 @@ instance.prototype.action = function(action) {
 	let buf = undefined;
 	let message = '';
 	var json_send = undefined;
+	let hour, min, sec, frame, blend;
 
 	switch (action.action) {
 		case 'timeline_transport':
@@ -1044,21 +1035,52 @@ instance.prototype.action = function(action) {
 			break;
 
 		case 'goto_time':
-			self.CHOICES_GOTOTIME_H = parseInt(opt.goto_time_h);
-			self.CHOICES_GOTOTIME_M = parseInt(opt.goto_time_m);
-			self.CHOICES_GOTOTIME_S = parseInt(opt.goto_time_s);
-			self.CHOICES_GOTOTIME_F = parseInt(opt.goto_time_f);
 
+			self.system.emit('variable_parse', opt.goto_time_h, function (value) {
+				hour = value
+			})
+			self.system.emit('variable_parse', opt.goto_time_m, function (value) {
+				min = value
+			})
+			self.system.emit('variable_parse', opt.goto_time_s, function (value) {
+				sec = value
+			})
+			self.system.emit('variable_parse', opt.goto_time_f, function (value) {
+				frame = value
+			})
+
+
+			self.CHOICES_GOTOTIME_H = parseInt(hour);
+			self.CHOICES_GOTOTIME_M = parseInt(min);
+			self.CHOICES_GOTOTIME_S = parseInt(sec);
+			self.CHOICES_GOTOTIME_F = parseInt(frame);
 			self.CHOICES_GOTOTIME_TIMELINE = parseInt(opt.goto_time_timelinename);
 			json_send = {'jsonrpc':'2.0', 'id':31, 'method':'Pixera.Timelines.Timeline.getFps', 'params':{'handle':parseInt(opt.goto_time_timelinename)}};
 			break;
 
 		case 'blend_to_time':
-			self.CHOICES_BLENDTIME_H = parseInt(opt.blend_time_h);
-			self.CHOICES_BLENDTIME_M = parseInt(opt.blend_time_m);
-			self.CHOICES_BLENDTIME_S = parseInt(opt.blend_time_s);
-			self.CHOICES_BLENDTIME_F = parseInt(opt.blend_time_f);
-			self.CHOICES_BLENDTIME_FRAMES = parseInt(opt.blend_time_frames);
+
+			self.system.emit('variable_parse', opt.blend_time_h, function (value) {
+				hour = value
+			})
+			self.system.emit('variable_parse', opt.blend_time_m, function (value) {
+				min = value
+			})
+			self.system.emit('variable_parse', opt.blend_time_s, function (value) {
+				sec = value
+			})
+			self.system.emit('variable_parse', opt.blend_time_f, function (value) {
+				frame = value
+			})
+			self.system.emit('variable_parse', opt.blend_time_frames, function (value) {
+				blend = value
+			})
+
+			self.CHOICES_BLENDTIME_H = parseInt(hour);
+			self.CHOICES_BLENDTIME_M = parseInt(min);
+			self.CHOICES_BLENDTIME_S = parseInt(sec);
+			self.CHOICES_BLENDTIME_F = parseInt(frame);
+			self.CHOICES_BLENDTIME_FRAMES = parseInt(blend);
 
 			self.CHOICES_BLENDTIME_TIMELINE = parseInt(opt.blend_time_timelinename);
 			json_send = {'jsonrpc':'2.0', 'id':32, 'method':'Pixera.Timelines.Timeline.getFps', 'params':{'handle':parseInt(opt.blend_time_timelinename)}};
