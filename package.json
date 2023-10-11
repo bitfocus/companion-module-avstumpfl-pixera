@@ -2,14 +2,6 @@
 	"name": "avstumpfl-pixera",
 	"version": "3.0.1",
 	"main": "src/index.js",
-	"keywords": [
-		"Media Server"
-	],
-	"manufacturer": "AV Stumpfl",
-	"product": "Pixera",
-	"shortname": "Pixera",
-	"homepage": "https://github.com/bitfocus/companion-module-avstumpfl-pixera#readme",
-	"description": "Control AV Stumpfl Pixera",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
