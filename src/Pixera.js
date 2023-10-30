@@ -41,6 +41,9 @@ class Pixera {
         this.initVariables();
         this.initTimelines();
         this.initScreens();
+        this.initLiveSystem();
+        this.initLiveSystemIps();
+        this.initRemoteSystemIps();
         if(self.config.polling)
 				{
           //self.log('debug',config.polling_rate);
@@ -148,6 +151,18 @@ class Pixera {
 		let self = this.instance;
 		this.send(11,'Pixera.Timelines.getTimelines');
 	};
+  initLiveSystemIps() {
+    let self = this.instance;
+    this.send(7,'Pixera.Session.getLiveSystemIps')
+  };
+  initRemoteSystemIps() {
+    let self = this.instance;
+    this.send(6,'Pixera.Session.getRemoteSystemIps')
+  };
+  initLiveSystem() {
+    let self = this.instance;
+    this.send(4,'Pixera.LiveSystems.getLiveSystems')
+  };
   initVariables(){
 		let self = this.instance;
 
@@ -159,6 +174,11 @@ class Pixera {
 		self.CHOICES_CUEHANDLE = [];
 		self.CHOICES_TIMELINEFEEDBACK = [];
 		self.CHOICES_FADELIST = [];
+    self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
+    self.CHOICES_LIVESYSTEMHANDLE = '';
+    self.CHOICES_REMOTESYSTEMIPNAME = [{label: '',id:0}]
+    self.CHOICES_LIVESYSTEMIPNAME = [{label: '',id:0}]
+    self.INDEX = 0
   }
   initScreens(){
 		let self = this.instance;
@@ -176,12 +196,103 @@ class Pixera {
 			switch(jsonData.id){
         case 0:   //none
         break;
+
         case 1:
         {
           let result = jsonData.result;
           self.VERSION = result;
         }
         break;
+
+        case 4:
+        {
+          let result = jsonData.result;
+          if(result != null){
+            for(let i = 0; i < result.length; i++){
+              self.CHOICES_LIVESYSTEMHANDLE = result;
+              self.pixera.sendParams(5,'Pixera.LiveSystems.LiveSystem.getName',{'handle':result[i]});
+            }
+          }
+          self.updateActions();
+        }
+        break;
+
+        case 5:
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.CHOICES_LIVESYSTEMNAME.push({label: result, id:self.CHOICES_LIVESYSTEMHANDLE[0]});
+
+            let temp = []
+            for (let i = 1; i < self.CHOICES_LIVESYSTEMHANDLE.length; i++) {
+              temp.push(self.CHOICES_LIVESYSTEMHANDLE[i]);
+            }
+            self.CHOICES_LIVESYSTEMHANDLE = temp;
+          }
+          self.updateActions();
+        }
+        break;
+
+        case 6:  //get remote system ip list
+				{
+          self.CHOICES_REMOTESYSTEMIPNAME.push({label: 'Empty', id: 0});
+
+					let result = jsonData.result;
+					for(let i = 0; i < result.length; i++){
+						self.CHOICES_REMOTESYSTEMIPNAME.push({label: result[i], id: i + 1});
+					}
+					self.updateActions();
+				}
+				break;
+
+        case 7:  //get live system ip list
+				{
+          self.CHOICES_LIVESYSTEMIPNAME.push({label: 'Empty', id: 0});
+
+					let result = jsonData.result;
+					for(let i = 0; i < result.length; i++){
+						self.CHOICES_LIVESYSTEMIPNAME.push({label: result[i], id: i + 1});
+					}
+					self.updateActions();
+				}
+				break;
+
+        case 8:
+        {
+          let result = jsonData.result;
+          if(result != null){
+            let name = self.CHOICES_CREATELAYER_LAYERNAME
+
+            this.sendParams(0,'Pixera.Timelines.Layer.setName',{'handle':result, 'name':name});
+          }
+        }
+        break;
+
+        case 9: // create cue at nowpointer position
+        {
+          let result = jsonData.result;
+          if(result != null){
+            let handle = self.CHOICES_CREATE_CUE_ATNOWPOINTER_TIMELINEHANDLE
+            let operation = self.CHOICES_CREATE_CUE_ATNOWPOINTER_CUEOPERATION
+            let name = self.CHOICES_CREATE_CUE_ATNOWPOINTER_CUENAME
+
+            this.sendParams(0,'Pixera.Timelines.Timeline.createCue',{'handle':handle, 'name':name, 'timeInFrames':result, 'operation':operation});
+          }
+        }
+        break;
+
+        case 10: //set current time based off nowpointer position and inputed frame amount
+        {
+          let result = jsonData.result;
+          if(result != null){
+            let time = result + self.CHOICES_MOVE_NOWPOINTER_FRAMES;
+            let handle = self.CHOICES_MOVE_NOWPOINTER_TIMELINEHANDLE;
+
+            this.sendParams(0,'Pixera.Timelines.Timeline.setCurrentTime',{'handle':handle,'time':time});
+          }
+        }
+        break;
+
 				case 11:  //get timeline list
 				{
 					let result = jsonData.result;
