@@ -1214,10 +1214,11 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.setBackupRole',{'handle':parseInt(opt.livesystems_setbackuprole_livesystem), 'role':opt.session_restartlivesystem_role});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setBackupRole',{'handle':parseInt(opt.livesystems_setbackuprole_livesystem), 'role':opt.session_restartlivesystem_role});
 			}
 		}
 
+		/*
 		// Created 10/30/2023 by Cody Luketic
 		actions.livesystems_exportMappings = {
 			name: 'Live Systems Export Mappings',
@@ -1239,9 +1240,10 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.exportMappings',{'handle':opt.livesystems_exportMappings_livesystem,'path':opt.livesystems_exportMappings_exportpath});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.exportMappings',{'handle':parseInt(opt.livesystems_exportMappings_livesystem),'path':opt.livesystems_exportMappings_exportpath});
 			}
 		}
+		*/
 
 		// Created 10/27/2023 by Cody Luketic
 		actions.livesystems_startengine = {
@@ -1258,7 +1260,7 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.startEngine',{'handle':opt.livesystems_startengine_livesystem});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',{'handle':parseInt(opt.livesystems_startengine_livesystem)});
 			}
 		}
 
@@ -1277,7 +1279,7 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.closeEngine',{'handle':opt.livesystems_closeEngine_livesystem});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',{'handle':parseInt(opt.livesystems_closeengine_livesystem)});
 			}
 		}
 
@@ -1296,7 +1298,7 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.restartEngine',{'handle':opt.livesystems_restartengine_livesystem});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',{'handle':parseInt(opt.livesystems_restartengine_livesystem)});
 			}
 		}
 
@@ -1315,7 +1317,7 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.resetEngine',{'handle':opt.livesystems_resetengine_livesystem});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',{'handle':parseInt(opt.livesystems_resetengine_livesystem)});
 			}
 		}
 
@@ -1334,10 +1336,11 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.wakeUp',{'handle':opt.livesystems_wakeup_livesystem});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',{'handle':parseInt(opt.livesystems_wakeup_livesystem)});
 			}
 		}
 
+		/*
 		// Created 10/30/2023 by Cody Luketic
 		actions.livesystems_setaudiomaster_volume = {
 			name: 'Live Systems Set Audio Master Volume',
@@ -1365,10 +1368,77 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.setAudioMasterVolume',{'handle':opt.livesystems_setaudiomaster_volume_livesystem, 'channel':opt.livesystems_setaudiomaster_volume_channel, 'volume':opt.livesystems_setaudiomaster_volume_volume});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',{'handle':parseInt(opt.livesystems_setaudiomaster_volume_livesystem), 'channel':opt.livesystems_setaudiomaster_volume_channel, 'volume':opt.livesystems_setaudiomaster_volume_volume});
 			}
 		}
-		
+		*/
+
+		/*
+		// Created 10/30/2023 by Cody Luketic
+		actions.livesystems_setaudiomaster_mute = {
+			name: 'Live Systems Set Audio Master Mute',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Live System',
+					id: 'livesystems_setaudiomaster_mute_livesystem',
+					default: '',
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'textinput',
+					label: 'Channel',
+					id: 'livesystems_setaudiomaster_mute_channel',
+					default: 0,
+				},
+				{
+					type: 'checkbox',
+					label: 'Mute',
+					id: 'livesystems_setaudiomaster_mute_state',
+					default: 1,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem), 'channel':opt.livesystems_setaudiomaster_mute_channel, 'state':opt.livesystems_setaudiomaster_mute_state});
+			}
+		}
+		*/
+
+		/*
+		// Created 10/30/2023 by Cody Luketic
+		actions.livesystems_setaudiotimecodeinput = {
+			name: 'Live Systems Set Audio Timecode Input',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Live System',
+					id: 'livesystems_setaudiotimecodeinput_livesystem',
+					default: '',
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'textinput',
+					label: 'Channel',
+					id: 'livesystems_setaudiotimecodeinput_channel',
+					default: 0,
+				},
+				{
+					type: 'checkbox',
+					label: 'State',
+					id: 'livesystems_setaudiotimecodeinput_state',
+					default: 1,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',{'handle':parseInt(opt.livesystems_setaudiotimecodeinput_livesystem), 'channel':opt.livesystems_setaudiotimecodeinput_channel, 'state':opt.livesystems_setaudiotimecodeinput_state});
+			}
+		}
+		*/
+
 		actions.controlAction = {
 			name: 'Control Call Action',
 			options: [
