@@ -42,8 +42,6 @@ class Pixera {
         this.initTimelines();
         this.initScreens();
         this.initLiveSystem();
-        this.initLiveSystemIps();
-        this.initRemoteSystemIps();
         if(self.config.polling)
 				{
           //self.log('debug',config.polling_rate);
@@ -151,10 +149,6 @@ class Pixera {
 		let self = this.instance;
 		this.send(11,'Pixera.Timelines.getTimelines');
 	};
-  initLiveSystemIps() {
-    let self = this.instance;
-    this.send(7,'Pixera.Session.getLiveSystemIps')
-  };
   initRemoteSystemIps() {
     let self = this.instance;
     this.send(6,'Pixera.Session.getRemoteSystemIps')
@@ -168,17 +162,18 @@ class Pixera {
 
 		self.CHOICES_TIMELINENAME = [{label: '',id:0}];
 		self.CHOICES_TIMELINEHANDLE = [];
+    self.CHOICES_TIMELINEFEEDBACK = [];
+
 		self.CHOICES_SCREENNAME = [{label: '',id:0}];
 		self.CHOICES_SCREENHANDLE = [];
+
 		self.CHOICES_CUENAME = [];
 		self.CHOICES_CUEHANDLE = [];
-		self.CHOICES_TIMELINEFEEDBACK = [];
+
 		self.CHOICES_FADELIST = [];
+
     self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
     self.CHOICES_LIVESYSTEMHANDLE = '';
-    self.CHOICES_REMOTESYSTEMIPNAME = [{label: '',id:0}]
-    self.CHOICES_LIVESYSTEMIPNAME = [{label: '',id:0}]
-    self.INDEX = 0
   }
   initScreens(){
 		let self = this.instance;
@@ -210,7 +205,8 @@ class Pixera {
           if(result != null){
             for(let i = 0; i < result.length; i++){
               self.CHOICES_LIVESYSTEMHANDLE = result;
-              self.pixera.sendParams(5,'Pixera.LiveSystems.LiveSystem.getName',{'handle':result[i]});
+              this.sendParams(5,'Pixera.LiveSystems.LiveSystem.getName',
+                {'handle':result[i]});
             }
           }
           self.updateActions();
@@ -233,62 +229,28 @@ class Pixera {
         }
         break;
 
-        case 6:  //get remote system ip list
-				{
-          self.CHOICES_REMOTESYSTEMIPNAME.push({label: 'Empty', id: 0});
-
-					let result = jsonData.result;
-					for(let i = 0; i < result.length; i++){
-						self.CHOICES_REMOTESYSTEMIPNAME.push({label: result[i], id: i + 1});
-					}
-					self.updateActions();
-				}
-				break;
-
-        case 7:  //get live system ip list
-				{
-          self.CHOICES_LIVESYSTEMIPNAME.push({label: 'Empty', id: 0});
-
-					let result = jsonData.result;
-					for(let i = 0; i < result.length; i++){
-						self.CHOICES_LIVESYSTEMIPNAME.push({label: result[i], id: i + 1});
-					}
-					self.updateActions();
-				}
-				break;
-
         case 8:
         {
           let result = jsonData.result;
           if(result != null){
-            let name = self.CHOICES_CREATELAYER_LAYERNAME
+            let name = self.CREATELAYER_LAYERNAME
 
-            this.sendParams(0,'Pixera.Timelines.Layer.setName',{'handle':result, 'name':name});
+            this.sendParams(0,'Pixera.Timelines.Layer.setName',
+              {'handle':result, 'name':name});
           }
         }
         break;
 
-        case 9: // create cue at nowpointer position
+        case 9: // create cue at current time
         {
           let result = jsonData.result;
           if(result != null){
-            let handle = self.CHOICES_CREATE_CUE_ATNOWPOINTER_TIMELINEHANDLE
-            let operation = self.CHOICES_CREATE_CUE_ATNOWPOINTER_CUEOPERATION
-            let name = self.CHOICES_CREATE_CUE_ATNOWPOINTER_CUENAME
+            let handle = self.TIMELINE_CREATECUE_TIMELINEHANDLE
+            let name = self.TIMELINE_CREATECUE_CUENAME
+            let operation = self.TIMELINE_CREATECUE_CUEOPERATION
 
-            this.sendParams(0,'Pixera.Timelines.Timeline.createCue',{'handle':handle, 'name':name, 'timeInFrames':result, 'operation':operation});
-          }
-        }
-        break;
-
-        case 10: //set current time based off nowpointer position and inputed frame amount
-        {
-          let result = jsonData.result;
-          if(result != null){
-            let time = result + self.CHOICES_MOVE_NOWPOINTER_FRAMES;
-            let handle = self.CHOICES_MOVE_NOWPOINTER_TIMELINEHANDLE;
-
-            this.sendParams(0,'Pixera.Timelines.Timeline.setCurrentTime',{'handle':handle,'time':time});
+            this.sendParams(0,'Pixera.Timelines.Timeline.createCue',
+              {'handle':handle, 'name':name, 'timeInFrames':result, 'operation':operation});
           }
         }
         break;
@@ -318,7 +280,7 @@ class Pixera {
 							break;
 						}
 					}
-					for(var k = 0; k<self.CHOICES_TIMELINEFEEDBACK.length;k++){
+					for(var k = 0;k<self.CHOICES_TIMELINEFEEDBACK.length;k++){
 						if(self.CHOICES_TIMELINEFEEDBACK[k]['handle'] == handle){
 							self.CHOICES_TIMELINEFEEDBACK[k]['name'] = result['name'];//set timeline name for feedback
 							self.CHOICES_TIMELINEFEEDBACK[k]['fps'] = result['fps'];//set timeline fps for feedback
@@ -391,6 +353,17 @@ class Pixera {
           if(result != null){
             this.sendParams(0,'Pixera.Timelines.Layer.resetLayer',{'handle':result});
           }
+        }
+        break;
+        case 44:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.muteLayerToggle
+        case 45:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.muteAudioToggle
+        {
+          let result = jsonData.result;
+          let muteMethod =  'Pixera.Timelines.Layer.muteLayerToggle';
+          if(jsonData.id == 45){
+            muteMethod =  'Pixera.Timelines.Layer.muteAudioToggle';
+          }
+          this.sendParams(0, muteMethod, {'handle':result});
         }
         break;
         case 9999:  //API
