@@ -41,7 +41,7 @@ class Pixera {
         this.initVariables();
         this.initTimelines();
         this.initScreens();
-        this.initLiveSystem();
+        this.initLiveSystems();
         if(self.config.polling)
 				{
           //self.log('debug',config.polling_rate);
@@ -153,7 +153,7 @@ class Pixera {
     let self = this.instance;
     this.send(6,'Pixera.Session.getRemoteSystemIps')
   };
-  initLiveSystem() {
+  initLiveSystems() {
     let self = this.instance;
     this.send(4,'Pixera.LiveSystems.getLiveSystems')
   };
@@ -163,15 +163,11 @@ class Pixera {
 		self.CHOICES_TIMELINENAME = [{label: '',id:0}];
 		self.CHOICES_TIMELINEHANDLE = [];
     self.CHOICES_TIMELINEFEEDBACK = [];
-
 		self.CHOICES_SCREENNAME = [{label: '',id:0}];
 		self.CHOICES_SCREENHANDLE = [];
-
 		self.CHOICES_CUENAME = [];
 		self.CHOICES_CUEHANDLE = [];
-
 		self.CHOICES_FADELIST = [];
-
     self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
     self.CHOICES_LIVESYSTEMHANDLE = '';
   }
@@ -192,14 +188,14 @@ class Pixera {
         case 0:   //none
         break;
 
-        case 1:
+        case 1:   //set version
         {
           let result = jsonData.result;
           self.VERSION = result;
         }
         break;
 
-        case 4:
+        case 4:   //store live system handles
         {
           let result = jsonData.result;
           if(result != null){
@@ -212,8 +208,7 @@ class Pixera {
           self.updateActions();
         }
         break;
-
-        case 5:
+        case 5:   //store live system names
         {
           let result = jsonData.result;
           if(result != null){
@@ -229,25 +224,35 @@ class Pixera {
         }
         break;
 
-        case 8:
+        case 7: //toggle audio mute by getting current and sending the reverse
         {
           let result = jsonData.result;
           if(result != null){
-            let name = self.CREATELAYER_LAYERNAME
-
-            this.sendParams(0,'Pixera.Timelines.Layer.setName',
-              {'handle':result, 'name':name});
+            self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterMute',
+              {'handle':self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_LIVESYSTEM,
+                'channel':self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_CHANNEL,
+                'state':!result});
           }
         }
         break;
 
-        case 9: // create cue at current time
+        case 8:   //set layer name from handle
         {
           let result = jsonData.result;
           if(result != null){
-            let handle = self.TIMELINE_CREATECUE_TIMELINEHANDLE
-            let name = self.TIMELINE_CREATECUE_CUENAME
-            let operation = self.TIMELINE_CREATECUE_CUEOPERATION
+            this.sendParams(0,'Pixera.Timelines.Layer.setName',
+              {'handle':result, 'name':self.CREATE_LAYER_LAYERNAME});
+          }
+        }
+        break;
+
+        case 9: //create cue at current time
+        {
+          let result = jsonData.result;
+          if(result != null){
+            let handle = self.TIMELINE_CREATE_CUE_TIMELINEHANDLE
+            let name = self.TIMELINE_CREATE_CUE_CUENAME
+            let operation = self.TIMELINE_CREATE_CUE_CUEOPERATION
 
             this.sendParams(0,'Pixera.Timelines.Timeline.createCue',
               {'handle':handle, 'name':name, 'timeInFrames':result, 'operation':operation});
@@ -355,17 +360,42 @@ class Pixera {
           }
         }
         break;
-        case 44:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.muteLayerToggle
-        case 45:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.muteAudioToggle
+
+        case 44:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.getIsLayerMuted
+        case 45:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.getIsAudioMuted
         {
-          let result = jsonData.result;
-          let muteMethod =  'Pixera.Timelines.Layer.muteLayerToggle';
+          self.MUTE_TOGGLE = jsonData.result;
           if(jsonData.id == 45){
-            muteMethod =  'Pixera.Timelines.Layer.muteAudioToggle';
+            this.sendParams(47, 'Pixera.Timelines.Layer.getIsAudioMuted', {'handle':self.MUTE_TOGGLE});
           }
-          this.sendParams(0, muteMethod, {'handle':result});
+          else {
+            this.sendParams(46, 'Pixera.Timelines.Layer.getIsLayerMuted', {'handle':self.MUTE_TOGGLE});
+          }
         }
         break;
+        case 46:  //Pixera.Timelines.Layer.muteLayer or Pixera.Timelines.Layer.unMuteLayer
+        case 47:  //Pixera.Timelines.Layer.muteAudio or Pixera.Timelines.Layer.unMuteAudio
+        {
+          let result = jsonData.result;
+          if(result == true) {
+            if(jsonData.id == 46) {
+              this.sendParams(0, 'Pixera.Timelines.Layer.unMuteLayer', {'handle':self.MUTE_TOGGLE});
+            }
+            else {
+              this.sendParams(0, 'Pixera.Timelines.Layer.unMuteAudio', {'handle':self.MUTE_TOGGLE});
+            }
+          }
+          else {
+            if(jsonData.id == 46) {
+              this.sendParams(0, 'Pixera.Timelines.Layer.muteLayer', {'handle':self.MUTE_TOGGLE});
+            }
+            else {
+              this.sendParams(0, 'Pixera.Timelines.Layer.muteAudio', {'handle':self.MUTE_TOGGLE});
+            }
+          }
+        }
+        break;
+
         case 9999:  //API
         {
           var result = jsonData.result;

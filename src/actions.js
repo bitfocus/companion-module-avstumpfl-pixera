@@ -32,7 +32,7 @@ module.exports  = {
 			}
 		}
 		
-		// Created 10/31/2023 by Cody Luketic
+		//Created 10/31/2023 by Cody Luketic
 		actions.timeline_transport_extended = {
 			name: 'Timeline Transport Extended',
 			options: [
@@ -47,7 +47,7 @@ module.exports  = {
 					label: 'Transport',
 					id: 'mode',
 					isVisible: (options) => options.timeline_transport_toggle == 0,
-					default: '1',
+					default: 1,
 					choices: [
 						{id: 1, label: 'Play'},
 						{id: 2, label: 'Pause'},
@@ -70,7 +70,7 @@ module.exports  = {
 					label: 'Timeline Name',
 					id: 'timeline_transport_name',
 					isVisible: (options) => options.timeline_transport_selection == 1,
-					default: '',
+					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
 				{
@@ -342,7 +342,7 @@ module.exports  = {
 			}
 		}
 
-		// Updated 10/31/2023 by Cody Luketic
+		//Updated 10/31/2023 by Cody Luketic
 		actions.timeline_scrubcurrenttime = {
 			name: 'Timeline Scrub Current Time',
 			options: [
@@ -368,27 +368,27 @@ module.exports  = {
 			}
 		}
 
-		// Updated 10/31/2023 by Cody Luketic
-		actions.timeline_createcue = {
+		//Updated 10/31/2023 by Cody Luketic
+		actions.timeline_create_cue = {
 			name: 'Timeline Create Cue',
 			options: [
 				{
 					type: 'dropdown',
 					label: 'Timeline Name',
-					id: 'timeline_createcue_timelinename',
+					id: 'timeline_create_cue_timelinename',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
 				{
 					type: 'textinput',
 					label: 'Name',
-					id: 'timeline_createcue_cuename',
-					default: '',
+					id: 'timeline_create_cue_cuename',
+					default: 'Cue 1',
 				},
 				{
 					type: 'dropdown',
 					label: 'Operation',
-					id: 'timeline_createcue_cueoperation',
+					id: 'timeline_create_cue_cueoperation',
 					default: 1,
 					choices: [
 						{label: 'Play', id: 1},
@@ -400,67 +400,67 @@ module.exports  = {
 				{
 					type: 'checkbox',
 					label: 'At Current Time',
-					id: 'timeline_createcue_atcurrenttime',
+					id: 'timeline_create_cue_atcurrenttime',
 					default: true,
 				},
 				{
 					type: 'textinput',
 					label: 'Hour',
-					id: 'timeline_createcue_h',
-					isVisible: (options) => options.timeline_createcue_atcurrenttime == 0,
+					id: 'timeline_create_cue_h',
+					isVisible: (options) => options.timeline_create_cue_atcurrenttime == 0,
 					default: '0',
 				},
 				{
 					type: 'textinput',
 					label: 'Minute',
-					id: 'timeline_createcue_m',
-					isVisible: (options) => options.timeline_createcue_atcurrenttime == 0,
+					id: 'timeline_create_cue_m',
+					isVisible: (options) => options.timeline_create_cue_atcurrenttime == 0,
 					default: '0',
 				},
 				{
 					type: 'textinput',
 					label: 'Second',
-					id: 'timeline_createcue_s',
-					isVisible: (options) => options.timeline_createcue_atcurrenttime == 0,
+					id: 'timeline_create_cue_s',
+					isVisible: (options) => options.timeline_create_cue_atcurrenttime == 0,
 					default: '0',
 				},
 				{
 					type: 'textinput',
 					label: 'Frame',
-					id: 'timeline_createcue_f',
-					isVisible: (options) => options.timeline_createcue_atcurrenttime == 0,
+					id: 'timeline_create_cue_f',
+					isVisible: (options) => options.timeline_create_cue_atcurrenttime == 0,
 					default: '0',
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				if(opt.timeline_createcue_atcurrenttime) {
-					self.TIMELINE_CREATECUE_TIMELINEHANDLE = parseInt(opt.timeline_createcue_timelinename);
-					self.TIMELINE_CREATECUE_CUENAME = opt.timeline_createcue_cuename;
-					self.TIMELINE_CREATECUE_CUEOPERATION = parseInt(opt.timeline_createcue_cueoperation);
+				if(opt.timeline_create_cue_atcurrenttime) {
+					self.TIMELINE_CREATE_CUE_TIMELINEHANDLE = parseInt(opt.timeline_create_cue_timelinename);
+					self.TIMELINE_CREATE_CUE_CUENAME = opt.timeline_create_cue_cuename;
+					self.TIMELINE_CREATE_CUE_CUEOPERATION = parseInt(opt.timeline_create_cue_cueoperation);
 
 					self.pixera.sendParams(9,'Pixera.Timelines.Timeline.getCurrentTime',
-						{'handle':parseInt(opt.timeline_createcue_timelinename)});
+						{'handle':parseInt(opt.timeline_create_cue_timelinename)});
 				}
 				else {
-					let hour = parseInt(await self.parseVariablesInString(opt.timeline_createcue_h));
-					let min = parseInt(await self.parseVariablesInString(opt.timeline_createcue_m));
-					let sec = parseInt(await self.parseVariablesInString(opt.timeline_createcue_s));
-					let frame = parseInt(await self.parseVariablesInString(opt.timeline_createcue_f));
+					let hour = parseInt(await self.parseVariablesInString(opt.timeline_create_cue_h));
+					let min = parseInt(await self.parseVariablesInString(opt.timeline_create_cue_m));
+					let sec = parseInt(await self.parseVariablesInString(opt.timeline_create_cue_s));
+					let frame = parseInt(await self.parseVariablesInString(opt.timeline_create_cue_f));
 
 					let fps = 60;
 					for(let i = 0; i <self.CHOICES_TIMELINEFEEDBACK.length; i++){
-						if(self.CHOICES_TIMELINEFEEDBACK[i]['handle'] == opt.timeline_createcue_timelinename){
+						if(self.CHOICES_TIMELINEFEEDBACK[i]['handle'] == opt.timeline_create_cue_timelinename){
 							fps = self.CHOICES_TIMELINEFEEDBACK[i]['fps'];
 							break;
 						}
 					}
 
 					let time = (((hour * 60)*60)*parseInt(fps))+((min*60)*parseInt(fps))+(sec*parseInt(fps))+frame;
-					let handle = parseInt(opt.timeline_createcue_timelinename);
-					let name = opt.timeline_createcue_cuename;
-					let operation = parseInt(opt.timeline_createcue_cueoperation);
+					let handle = parseInt(opt.timeline_create_cue_timelinename);
+					let name = opt.timeline_create_cue_cuename;
+					let operation = parseInt(opt.timeline_create_cue_cueoperation);
 
 					self.pixera.sendParams(0,'Pixera.Timelines.Timeline.createCue',
 						{'handle':handle, 'name':name, 'timeInFrames':time, 'operation':operation});
@@ -700,7 +700,7 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
+		//Created 10/27/2023 by Cody Luketic
 		actions.timeline_zoomfactor = {
 			name: 'Timeline Zoom Factor',
 			options: [
@@ -714,9 +714,9 @@ module.exports  = {
 				{
 					type: 'textinput',
 					label: 'Zoom Factor',
-					id: 'timeline_zoomfactor_zoomfactor',
-					default: '1.0',
-					regex:   self.REGEX_FLOAT
+					id: 'timeline_zoomfactor_factor',
+					default: 1.0,
+					regex: self.REGEX_FLOAT
 				}
 			],
 			callback: async (event) => {
@@ -724,11 +724,12 @@ module.exports  = {
 
 				let val = parseFloat(await self.parseVariablesInString(opt.timeline_zoomfactor_zoomfactor));
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.setZoomFactor',
-					{'handle':parseInt(opt.timeline_zoomfactor_timelinename),'zoomFactor':val});
+					{'handle':parseInt(opt.timeline_zoomfactor_timelinename),
+						'zoomFactor':parseFloat(opt.timeline_zoomfactor_factor)});
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
+		//Created 10/27/2023 by Cody Luketic
 		actions.timeline_select = {
 			name: 'Timeline Select',
 			options: [
@@ -748,7 +749,7 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
+		//Created 10/27/2023 by Cody Luketic
 		actions.timeline_moverenderorder = {
 			name: 'Timeline Move Render Order',
 			options: [
@@ -763,7 +764,7 @@ module.exports  = {
 					type: 'checkbox',
 					label: 'Move (On = Down, Off = Up)',
 					id: 'timeline_moverenderorder',
-					default: true
+					default: true,
 				}
 			],
 			callback: async (event) => {
@@ -774,35 +775,35 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
-		actions.timeline_createlayer = {
+		//Created 10/27/2023 by Cody Luketic
+		actions.timeline_create_layer = {
 			name: 'Timeline Create Layer',
 			options: [
 				{
 					type: 'dropdown',
 					label: 'Timeline Name',
-					id: 'timeline_createlayer_timelinename',
+					id: 'timeline_create_layer_timelinename',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
 				{
 					type: 'textinput',
 					label: 'Layer Name',
-					id: 'timeline_createlayer_layername',
+					id: 'timeline_create_layer_layername',
 					default: 'Layer 1',
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.CREATELAYER_LAYERNAME = opt.timeline_createlayer_layername;
+				self.CREATE_LAYER_LAYERNAME = opt.timeline_create_layer_layername;
 
 				self.pixera.sendParams(8,'Pixera.Timelines.Timeline.createLayer',
-					{'handle':parseInt(opt.timeline_createlayer_timelinename)});
+					{'handle':parseInt(opt.timeline_create_layer_timelinename)});
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
+		//Created 10/27/2023 by Cody Luketic
 		actions.timeline_removecues = {
 			name: 'Timeline Remove Cues',
 			options: [
@@ -822,7 +823,7 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
+		//Created 10/27/2023 by Cody Luketic
 		actions.timeline_reset = {
 			name: 'Timeline Reset',
 			options: [
@@ -842,7 +843,7 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
+		//Created 10/27/2023 by Cody Luketic
 		actions.timeline_speedfactor = {
 			name: 'Timeline Speed Factor',
 			options: [
@@ -856,15 +857,17 @@ module.exports  = {
 				{
 					type: 'textinput',
 					label: 'Speed Factor',
-					id: 'timeline_speedfactor_speedfactor',
-					default: '1.0',
+					id: 'timeline_speedfactor_factor',
+					default: 1.0,
+					regex: self.REGEX_FLOAT
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.setSpeedFactor',
-					{'handle':parseInt(opt.timeline_speedfactor_timelinename), 'factor':parseFloat(opt.timeline_speedfactor_speedfactor)});
+					{'handle':parseInt(opt.timeline_speedfactor_timelinename),
+						'factor':parseFloat(opt.timeline_speedfactor_factor)});
 			}
 		}
 		
@@ -990,42 +993,48 @@ module.exports  = {
 				}	
 			}
 		}
-
-		/*
-		// Updated 10/31/2023 by Cody Luketic
-		actions.layer_mute_toggle = {
-			name: 'Layer Mute Toggle',
+		
+		//Updated 10/31/2023 by Cody Luketic
+		actions.layer_mute_extended = {
+			name: 'Layer Mute Extended',
 			options: [
+				{
+					type: 'checkbox',
+					label: 'Toggle',
+					id: 'layer_mute_extended_state',
+					default: true,
+				},
 				{
 					type: 'textinput',
 					label: 'Layer Path',
-					id: 'layer_mute_toggle_layerpath',
+					id: 'layer_mute_extended_path',
 					default: 'Timeline 1.Layer 1',
 				},
 				{
 					type: 'dropdown',
 					label: 'Parameter',
-					id: 'layer_mute_toggle_layerparametermute',
-					default: 'muteLayer',
+					id: 'layer_mute_extended_parameter',
+					default: 0,
 					choices:[
-						{id: 'muteLayer', label: 'Mute Layer'},
-						{id: 'muteVolume', label: 'Mute Volume'},
+						{label: 'Mute Layer', id: 0},
+						{label: 'Mute Volume', id: 1},
 					]
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				if(opt.layer_mute_toggle_layerparametermute === 'muteLayer')
+				if(opt.layer_mute_extended_parameter == 0)
 				{
-					self.pixera.sendParams(44,'Pixera.Timelines.Layer.getInst',{'instancePath': opt.layer_mute_toggle_layerpath});
+					self.pixera.sendParams(44,'Pixera.Timelines.Layer.getInst',
+						{'instancePath': opt.layer_mute_extended_path});
 				}
-				else if(opt.layer_mute_toggle_layerparametermute == 'muteVolume')
+				else if(opt.layer_mute_extended_parameter == 'muteVolume')
 				{
-					self.pixera.sendParams(45,'Pixera.Timelines.Layer.getInst',{'instancePath': opt.layer_mute_toggle_layerpath});
+					self.pixera.sendParams(45,'Pixera.Timelines.Layer.getInst',
+						{'instancePath': opt.layer_mute_extended_path});
 				}	
 			}
 		}
-		*/
 
 		actions.layerParameter = {
 			name: 'Layer Parameter',
@@ -1050,7 +1059,7 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
+		//Updated 10/30/2023 by Cody Luketic
 		actions.session_project = {
 			name: 'Session Project',
 			options: [
@@ -1060,24 +1069,24 @@ module.exports  = {
 					id: 'session_project_action',
 					default: 1,
 					choices: [
-						{label: 'Save', id: 1},
-						{label: 'Save As', id: 2},
-						{label: 'Load', id: 3},
-						{label: 'Close', id: 4}
+						{label: 'Save', id: 0},
+						{label: 'Save As', id: 1},
+						{label: 'Load', id: 2},
+						{label: 'Close', id: 3}
 					]
 				},
 				{
 					type: 'checkbox',
 					label: 'Save Project',
 					id: 'session_project_saveproject',
-					isVisible: (options) => options.session_project_action == 4,
+					isVisible: (options) => options.session_project_action == 3,
 					default: true,
 				},
 				{
 					type: 'textinput',
 					label: 'Project Path',
 					id: 'session_project_projectpath',
-					isVisible: (options) => options.session_project_action == 2 || options.session_project_action == 3,
+					isVisible: (options) => options.session_project_action == 1 || options.session_project_action == 2,
 					default: 'C:\\',
 				}
 			],
@@ -1085,18 +1094,18 @@ module.exports  = {
 				let opt = event.options;
 
 				switch (opt.session_project_action) {
-					case 1:
+					case 0:
 						self.pixera.send(0,'Pixera.Session.saveProject');
 						break;
-					case 2:
+					case 1:
 						self.pixera.sendParams(0,'Pixera.Session.saveProjectAs',
 							{'path':opt.session_project_projectpath});
 						break;
-					case 3:
+					case 2:
 						self.pixera.sendParams(0,'Pixera.Session.loadProject',
 							{'path':opt.session_project_projectpath});
 						break;
-					case 4:
+					case 3:
 						self.pixera.sendParams(0,'Pixera.Session.closeApp',
 							{'saveProject':opt.session_project_saveproject});
 						break;
@@ -1106,7 +1115,7 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/31/2023 by Cody Luketic
+		//Created 10/31/2023 by Cody Luketic
 		actions.session_livesystem = {
 			name: 'Session Livesystem',
 			options: [
@@ -1114,17 +1123,17 @@ module.exports  = {
 					type: 'textinput',
 					label: 'IP',
 					id: 'session_livesystem_ip',
-					default: '',
+					default: '127.0.0.1',
 				},
 				{
 					type: 'dropdown',
 					label: 'Action',
 					id: 'session_livesystem_action',
-					default: 1,
+					default: 0,
 					choices: [
-						{label: 'Start', id: 1},
-						{label: 'Stop', id: 2},
-						{label: 'Restart', id: 3}
+						{label: 'Start', id: 0},
+						{label: 'Stop', id: 1},
+						{label: 'Restart', id: 2}
 					]
 				},
 				{
@@ -1139,13 +1148,13 @@ module.exports  = {
 
 				if(opt.session_livesystem_all) {
 					switch (opt.session_livesystem_action) {
-						case 1:
+						case 0:
 							self.pixera.send(0,'Pixera.Session.startLiveSystems');
 							break;
-						case 2:
+						case 1:
 							self.pixera.send(0,'Pixera.Session.stopLiveSystems');
 							break;
-						case 3:
+						case 2:
 							self.pixera.send(0,'Pixera.Session.restartLiveSystems');
 							break;
 						default:
@@ -1154,15 +1163,15 @@ module.exports  = {
 				}
 				else {
 					switch (opt.session_livesystem_action) {
-						case 1:
+						case 0:
 							self.pixera.sendParams(0,'Pixera.Session.startLiveSystem',
 								{'ip':opt.session_livesystem_ip});
 							break;
-						case 2:
+						case 1:
 							self.pixera.sendParams(0,'Pixera.Session.stopLiveSystem',
 								{'ip':opt.session_livesystem_ip});
 							break;
-						case 3:
+						case 2:
 							self.pixera.sendParams(0,'Pixera.Session.restartLiveSystem',
 								{'ip':opt.session_livesystem_ip});
 							break;
@@ -1173,7 +1182,7 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/30/2023 by Cody Luketic
+		//Created 10/30/2023 by Cody Luketic
 		actions.session_setvideostreamactivestate = {
 			name: 'Session Set Video Stream Active State',
 			options: [
@@ -1181,7 +1190,7 @@ module.exports  = {
 					type: 'textinput',
 					label: 'IP',
 					id: 'session_setvideostreamactivestate_ip',
-					default: '',
+					default: '127.0.0.1',
 				},
 				{
 					type: 'textinput',
@@ -1206,7 +1215,7 @@ module.exports  = {
 			}
 		}
 		
-		// Created 10/30/2023 by Cody Luketic
+		//Created 10/30/2023 by Cody Luketic
 		actions.livesystems_exportMappings = {
 			name: 'Live Systems Export Mappings',
 			options: [
@@ -1232,7 +1241,7 @@ module.exports  = {
 			}
 		}
 
-		// Created 10/27/2023 by Cody Luketic
+		//Created 10/27/2023 by Cody Luketic
 		actions.livesystems_engine = {
 			name: 'Live Systems Engine',
 			options: [
@@ -1247,13 +1256,13 @@ module.exports  = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'livesystems_engine_action',
-					default: 1,
+					default: 0,
 					choices: [
-						{label: 'Start', id: 1},
-						{label: 'Close', id: 2},
-						{label: 'Restart', id: 3},
-						{label: 'Reset', id: 4},
-						{label: 'Wake Up', id: 5}
+						{label: 'Start', id: 0},
+						{label: 'Close', id: 1},
+						{label: 'Restart', id: 2},
+						{label: 'Reset', id: 3},
+						{label: 'Wake Up', id: 4}
 					]
 				},
 				{
@@ -1278,23 +1287,23 @@ module.exports  = {
 						let handle = self.CHOICES_LIVESYSTEMNAME[i].id;
 						if(!opt.livesystems_engine_local){
 							switch (id) {
-								case 1:
+								case 0:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
 										{'handle':parseInt(handle)});
 									break;
-								case 2:
+								case 1:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
 										{'handle':parseInt(handle)});
 									break;
-								case 3:
+								case 2:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
 										{'handle':parseInt(handle)});
 									break;
-								case 4:
+								case 3:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
 										{'handle':parseInt(handle)});
 									break;
-								case 5:
+								case 4:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
 										{'handle':parseInt(handle)});
 									break;
@@ -1304,23 +1313,23 @@ module.exports  = {
 						}
 						else if(self.CHOICES_LIVESYSTEMNAME[i].label != 'Local'){
 							switch (id) {
-								case 1:
+								case 0:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
 										{'handle':parseInt(handle)});
 									break;
-								case 2:
+								case 1:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
 										{'handle':parseInt(handle)});
 									break;
-								case 3:
+								case 2:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
 										{'handle':parseInt(handle)});
 									break;
-								case 4:
+								case 3:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
 										{'handle':parseInt(handle)});
 									break;
-								case 5:
+								case 4:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
 										{'handle':parseInt(handle)});
 									break;
@@ -1332,23 +1341,23 @@ module.exports  = {
 				}
 				else {
 					switch (id) {
-						case 1:
+						case 0:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
 								{'handle':parseInt(opt.livesystems_engine_livesystem)});
 							break;
-						case 2:
+						case 1:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
 								{'handle':parseInt(opt.livesystems_engine_livesystem)});
 							break;
-						case 3:
+						case 2:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
 								{'handle':parseInt(opt.livesystems_engine_livesystem)});
 							break;
-						case 4:
+						case 3:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
 								{'handle':parseInt(opt.livesystems_engine_livesystem)});
 							break;
-						case 5:
+						case 4:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
 								{'handle':parseInt(opt.livesystems_engine_livesystem)});
 							break;
@@ -1359,7 +1368,7 @@ module.exports  = {
 			}
 		}
 
-		// Updated 10/31/2023 by Cody Luketic
+		//Updated 10/31/2023 by Cody Luketic
 		actions.livesystems_setaudiomaster_volume = {
 			name: 'Live Systems Set Audio Master Volume',
 			options: [
@@ -1374,13 +1383,14 @@ module.exports  = {
 					type: 'textinput',
 					label: 'Channel',
 					id: 'livesystems_setaudiomaster_volume_channel',
-					default: '',
+					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Volume',
-					id: 'livesystems_setaudiomaster_volume_volume',
+					id: 'livesystems_setaudiomaster_volume_value',
 					default: 1.0,
+					regex: self.REGEX_FLOAT
 				}
 			],
 			callback: async (event) => {
@@ -1389,12 +1399,11 @@ module.exports  = {
 				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',
 					{'handle':parseInt(opt.livesystems_setaudiomaster_volume_livesystem),
 						'channel':parseInt(opt.livesystems_setaudiomaster_volume_channel),
-						'volume':parseFloat(opt.livesystems_setaudiomaster_volume_volume)});
+						'volume':parseFloat(opt.livesystems_setaudiomaster_volume_value)});
 			}
 		}
 
-		/*
-		// Updated 10/31/2023 by Cody Luketic
+		//Updated 10/31/2023 by Cody Luketic
 		actions.livesystems_setaudiomaster_mute = {
 			name: 'Live Systems Set Audio Master Mute',
 			options: [
@@ -1402,35 +1411,50 @@ module.exports  = {
 					type: 'dropdown',
 					label: 'Live System',
 					id: 'livesystems_setaudiomaster_mute_livesystem',
-					default: '',
+					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME
 				},
 				{
 					type: 'textinput',
 					label: 'Channel',
 					id: 'livesystems_setaudiomaster_mute_channel',
-					default: '',
+					default: '1',
+				},
+				{
+					type: 'checkbox',
+					label: 'Toggle Mute',
+					id: 'livesystems_setaudiomaster_mute_toggle',
+					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Mute',
 					id: 'livesystems_setaudiomaster_mute_state',
+					isVisible: (options) => options.livesystems_setaudiomaster_mute_toggle == 0,
 					default: false,
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',
-					{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
-						'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel),
-						'state':opt.livesystems_setaudiomaster_mute_state});
+				if(opt.livesystems_setaudiomaster_mute_toggle) {
+					self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_LIVESYSTEM = parseInt(opt.livesystems_setaudiomaster_mute_livesystem);
+					self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_CHANNEL = parseInt(opt.livesystems_setaudiomaster_mute_channel);
+
+					self.pixera.sendParams(7,'Pixera.LiveSystems.LiveSystem.getAudioMasterMute',
+						{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
+							'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterMute',
+						{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
+							'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel),
+							'state':opt.livesystems_setaudiomaster_mute_state});
+				}
 			}
 		}
-		*/
-
-		/*
-		// Created 10/30/2023 by Cody Luketic
+		
+		//Updated 10/31/2023 by Cody Luketic
 		actions.livesystems_setaudiotimecodeinput = {
 			name: 'Live Systems Set Audio Timecode Input',
 			options: [
@@ -1438,29 +1462,31 @@ module.exports  = {
 					type: 'dropdown',
 					label: 'Live System',
 					id: 'livesystems_setaudiotimecodeinput_livesystem',
-					default: '',
+					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME
 				},
 				{
 					type: 'textinput',
 					label: 'Channel',
 					id: 'livesystems_setaudiotimecodeinput_channel',
-					default: 0,
+					default: '1',
 				},
 				{
 					type: 'checkbox',
 					label: 'State',
 					id: 'livesystems_setaudiotimecodeinput_state',
-					default: 1,
+					default: true,
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',{'handle':parseInt(opt.livesystems_setaudiotimecodeinput_livesystem), 'channel':opt.livesystems_setaudiotimecodeinput_channel, 'state':opt.livesystems_setaudiotimecodeinput_state});
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioTimecodeInput',
+					{'handle':parseInt(opt.livesystems_setaudiotimecodeinput_livesystem),
+						'channel':parseInt(opt.livesystems_setaudiotimecodeinput_channel),
+						'state':opt.livesystems_setaudiotimecodeinput_state});
 			}
 		}
-		*/
 
 		actions.controlAction = {
 			name: 'Control Call Action',
