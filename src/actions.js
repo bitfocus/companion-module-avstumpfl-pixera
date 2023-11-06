@@ -39,7 +39,7 @@ module.exports  = {
 			options: [
 				{
 					type: 'checkbox',
-					label: 'Toggle',
+					label: 'Make Toggle',
 					id: 'timeline_transport_toggle',
 					default: false,
 				},
@@ -233,35 +233,804 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'screen_transform_timelinename',
+					label: 'Screen Name',
+					id: 'screen_transform_screenname',
 					default: 0,
-					choices: self.CHOICES_TIMELINENAME
+					choices: self.CHOICES_SCREENNAME
 				},
 				{
 					type: 'dropdown',
-					label: 'Selection',
-					id: 'screen_transform_timelinename',
-					default: 0,
+					label: 'Type',
+					id: 'screen_transform_type',
+					default: 5,
 					choices:[
 						{label: 'Position', id: 1},
-						{label: 'Pause', id: 2},
-						{label: 'Stop', id: 3},
-						{label: 'Jump', id: 4}
+						{label: 'Rotation', id: 2},
+						{label: 'Scale', id: 3},
+						{label: 'Position and Rotation', id: 4},
+						{label: 'Position and Rotation and Scale', id: 5}
 					]
 				},
 				{
 					type: 'textinput',
-					label: 'Frames',
-					id: 'timeline_scrubcurrenttime_frames',
-					default: 0,
+					label: 'Position X',
+					id: 'screen_transform_position_x',
+					isVisible: (options) => options.screen_transform_type == 1
+						|| options.screen_transform_type == 4
+						|| options.screen_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Y',
+					id: 'screen_transform_position_y',
+					isVisible: (options) => options.screen_transform_type == 1
+						|| options.screen_transform_type == 4
+						|| options.screen_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Z',
+					id: 'screen_transform_position_z',
+					isVisible: (options) => options.screen_transform_type == 1
+						|| options.screen_transform_type == 4
+						|| options.screen_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation X',
+					id: 'screen_transform_rotation_x',
+					isVisible: (options) => options.screen_transform_type == 2
+						|| options.screen_transform_type == 4
+						|| options.screen_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Y',
+					id: 'screen_transform_rotation_y',
+					isVisible: (options) => options.screen_transform_type == 2
+						|| options.screen_transform_type == 4
+						|| options.screen_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Z',
+					id: 'screen_transform_rotation_z',
+					isVisible: (options) => options.screen_transform_type == 2
+						|| options.screen_transform_type == 4
+						|| options.screen_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Scale X',
+					id: 'screen_transform_scale_x',
+					isVisible: (options) => options.screen_transform_type == 3
+						|| options.screen_transform_type == 5,
+					default: '1.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Scale Y',
+					id: 'screen_transform_scale_y',
+					isVisible: (options) => options.screen_transform_type == 3
+						|| options.screen_transform_type == 5,
+					default: '1.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Scale Z',
+					id: 'screen_transform_scale_z',
+					isVisible: (options) => options.screen_transform_type == 3
+						|| options.screen_transform_type == 5,
+					default: '1.0',
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.scrubCurrentTime',
-					{'handle':parseInt(opt.timeline_scrubcurrenttime_timelinename), 'frames':parseInt(opt.timeline_scrubcurrenttime_frames)});
+				switch(opt.screen_transform_type) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPosition',
+							{'handle':parseInt(opt.screen_transform_screenname),
+								'xPos':parseFloat(opt.screen_transform_position_x),
+								'yPos':parseFloat(opt.screen_transform_position_y),
+								'zPos':parseFloat(opt.screen_transform_position_z)});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setRotation',
+							{'handle':parseInt(opt.screen_transform_screenname),
+								'xRot':parseFloat(opt.screen_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_transform_rotation_z)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setScale',
+							{'handle':parseInt(opt.screen_transform_screenname),
+								'xScale':parseFloat(opt.screen_transform_scale_x),
+								'yScale':parseFloat(opt.screen_transform_scale_y),
+								'zScale':parseFloat(opt.screen_transform_scale_z)});
+						break;
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPosRot',
+							{'handle':parseInt(opt.screen_transform_screenname),
+								'xPos':parseFloat(opt.screen_transform_position_x),
+								'yPos':parseFloat(opt.screen_transform_position_y),
+								'zPos':parseFloat(opt.screen_transform_position_z),
+								'xRot':parseFloat(opt.screen_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_transform_rotation_z)});
+						break;
+					case 5:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPosRotScale',
+							{'handle':parseInt(opt.screen_transform_screenname),
+								'xPos':parseFloat(opt.screen_transform_position_x),
+								'yPos':parseFloat(opt.screen_transform_position_y),
+								'zPos':parseFloat(opt.screen_transform_position_z),
+								'xRot':parseFloat(opt.screen_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_transform_rotation_z),
+								'xScale':parseFloat(opt.screen_transform_scale_x),
+								'yScale':parseFloat(opt.screen_transform_scale_y),
+								'zScale':parseFloat(opt.screen_transform_scale_z)});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/6/2023 by Cody Luketic
+		actions.screen_perspective_transform = {
+			name: 'Screen Perspective Transform',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Screen Name',
+					id: 'screen_perspective_transform_screenname',
+					default: 0,
+					choices: self.CHOICES_SCREENNAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Type',
+					id: 'screen_perspective_transform_type',
+					default: 1,
+					choices:[
+						{label: 'Position', id: 1},
+						{label: 'Position with Look at', id: 2},
+						{label: 'Rotation', id: 3},
+						{label: 'Snap Corners to Screen', id: 4}
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Position X',
+					id: 'screen_perspective_transform_position_x',
+					isVisible: (options) => options.screen_perspective_transform_type == 1,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Y',
+					id: 'screen_perspective_transform_position_y',
+					isVisible: (options) => options.screen_perspective_transform_type == 1,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Z',
+					id: 'screen_perspective_transform_position_z',
+					isVisible: (options) => options.screen_perspective_transform_type == 1,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Look at X',
+					id: 'screen_perspective_transform_positionlookat_x',
+					isVisible: (options) => options.screen_perspective_transform_type == 2,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Look at Y',
+					id: 'screen_perspective_transform_positionlookat_y',
+					isVisible: (options) => options.screen_perspective_transform_type == 2,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Look at Z',
+					id: 'screen_perspective_transform_positionlookat_z',
+					isVisible: (options) => options.screen_perspective_transform_type == 2,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation X',
+					id: 'screen_perspective_transform_rotation_x',
+					isVisible: (options) => options.screen_perspective_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Y',
+					id: 'screen_perspective_transform_rotation_y',
+					isVisible: (options) => options.screen_perspective_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Z',
+					id: 'screen_perspective_transform_rotation_z',
+					isVisible: (options) => options.screen_perspective_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Mode',
+					id: 'screen_perspective_transform_mode',
+					isVisible: (options) => options.screen_perspective_transform_type == 4,
+					default: '0.0',
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				switch(opt.screen_perspective_transform_type) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPerspectivePosition',
+							{'handle':parseInt(opt.screen_perspective_transform_screenname),
+								'xPos':parseFloat(opt.screen_perspective_transform_position_x),
+								'yPos':parseFloat(opt.screen_perspective_transform_position_y),
+								'zPos':parseFloat(opt.screen_perspective_transform_position_z)});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPerspectivePositionWithLookAt',
+							{'handle':parseInt(opt.screen_perspective_transform_screenname),
+								'xPos':parseFloat(opt.screen_perspective_transform_positionlookat_x),
+								'yPos':parseFloat(opt.screen_perspective_transform_positionlookat_y),
+								'zPos':parseFloat(opt.screen_perspective_transform_positionlookat_z)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPerspectiveRotation',
+							{'handle':parseInt(opt.screen_perspective_transform_screenname),
+								'xRot':parseFloat(opt.screen_perspective_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_perspective_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_perspective_transform_rotation_z)});
+						break;
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.snapPerspectiveCornersToScreen',
+							{'handle':parseInt(opt.screen_perspective_transform_screenname),
+								'mode':parseFloat(opt.screen_perspective_transform_mode)});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/6/2023 by Cody Luketic
+		actions.screen_camera_transform = {
+			name: 'Screen Camera Transform',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Screen Name',
+					id: 'screen_camera_transform_screenname',
+					default: 0,
+					choices: self.CHOICES_SCREENNAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Type',
+					id: 'screen_camera_transform_type',
+					default: 1,
+					choices:[
+						{label: 'Position', id: 1},
+						{label: 'Position with Look at', id: 2},
+						{label: 'Rotation', id: 3},
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Position X',
+					id: 'screen_camera_transform_position_x',
+					isVisible: (options) => options.screen_camera_transform_type == 1,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Y',
+					id: 'screen_camera_transform_position_y',
+					isVisible: (options) => options.screen_camera_transform_type == 1,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Z',
+					id: 'screen_camera_transform_position_z',
+					isVisible: (options) => options.screen_camera_transform_type == 1,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Look at X',
+					id: 'screen_camera_transform_positionlookat_x',
+					isVisible: (options) => options.screen_camera_transform_type == 2,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Look at Y',
+					id: 'screen_camera_transform_positionlookat_y',
+					isVisible: (options) => options.screen_camera_transform_type == 2,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Look at Z',
+					id: 'screen_camera_transform_positionlookat_z',
+					isVisible: (options) => options.screen_camera_transform_type == 2,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation X',
+					id: 'screen_camera_transform_rotation_x',
+					isVisible: (options) => options.screen_camera_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Y',
+					id: 'screen_camera_transform_rotation_y',
+					isVisible: (options) => options.screen_camera_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Z',
+					id: 'screen_camera_transform_rotation_z',
+					isVisible: (options) => options.screen_camera_transform_type == 3,
+					default: '0.0',
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				switch(opt.screen_camera_transform_type) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setCameraPosition',
+							{'handle':parseInt(opt.screen_camera_transform_screenname),
+								'xPos':parseFloat(opt.screen_camera_transform_position_x),
+								'yPos':parseFloat(opt.screen_camera_transform_position_y),
+								'zPos':parseFloat(opt.screen_camera_transform_position_z)});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setCameraPositionWithLookAt',
+							{'handle':parseInt(opt.screen_camera_transform_screenname),
+								'xPos':parseFloat(opt.screen_camera_transform_positionlookat_x),
+								'yPos':parseFloat(opt.screen_camera_transform_positionlookat_y),
+								'zPos':parseFloat(opt.screen_camera_transform_positionlookat_z)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Screens.Screen.setCameraRotation',
+							{'handle':parseInt(opt.screen_camera_transform_screenname),
+								'xRot':parseFloat(opt.screen_camera_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_camera_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_camera_transform_rotation_z)});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/6/2023 by Cody Luketic
+		actions.screen_studiocamera_transform = {
+			name: 'Screen Studio Camera Transform',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Studio Camera Name',
+					id: 'screen_studiocamera_transform_studiocameraname',
+					default: 0,
+					choices: self.CHOICES_STUDIOCAMERANAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Type',
+					id: 'screen_studiocamera_transform_type',
+					default: 1,
+					choices:[
+						{label: 'Position', id: 1},
+						{label: 'Rotation', id: 2},
+						{label: 'Transformation', id: 3}/*,
+						{label: 'Transformation and Lens Properties', id: 4},
+						{label: 'Transformation and Lens Properties Extended', id: 5},*/
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Position X',
+					id: 'screen_studiocamera_transform_position_x',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 1
+						|| options.screen_studiocamera_transform_type == 3
+						|| options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Y',
+					id: 'screen_studiocamera_transform_position_y',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 1
+						|| options.screen_studiocamera_transform_type == 3
+						|| options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Z',
+					id: 'screen_studiocamera_transform_position_z',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 1
+						|| options.screen_studiocamera_transform_type == 3
+						|| options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation X',
+					id: 'screen_studiocamera_transform_rotation_x',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 2
+						|| options.screen_studiocamera_transform_type == 3
+						|| options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Y',
+					id: 'screen_studiocamera_transform_rotation_y',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 2
+						|| options.screen_studiocamera_transform_type == 3
+						|| options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Z',
+					id: 'screen_studiocamera_transform_rotation_z',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 2
+						|| options.screen_studiocamera_transform_type == 3
+						|| options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'FOV',
+					id: 'screen_studiocamera_transform_fov',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 3
+						|| options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Aspect Ratio',
+					id: 'screen_studiocamera_transform_aspectratio',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 3
+						|| options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				}/*,
+				{
+					type: 'textinput',
+					label: 'Near Clip',
+					id: 'screen_studiocamera_transform_nearclip',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Far Clip',
+					id: 'screen_studiocamera_transform_farclip',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Aperture',
+					id: 'screen_studiocamera_transform_aperture',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Focus',
+					id: 'screen_studiocamera_transform_focus',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Focal Distance',
+					id: 'screen_studiocamera_transform_focaldistance',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Zoom',
+					id: 'screen_studiocamera_transform_zoom',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Iris',
+					id: 'screen_studiocamera_transform_iris',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'K1',
+					id: 'screen_studiocamera_transform_k1',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'K2',
+					id: 'screen_studiocamera_transform_k2',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'K3',
+					id: 'screen_studiocamera_transform_k3',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'P1',
+					id: 'screen_studiocamera_transform_p1',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'P2',
+					id: 'screen_studiocamera_transform_p2',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Center X',
+					id: 'screen_studiocamera_transform_centerx',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Center Y',
+					id: 'screen_studiocamera_transform_centery',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Panel Width',
+					id: 'screen_studiocamera_transform_panelwidth',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 4
+						|| options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Overscan',
+					id: 'screen_studiocamera_transform_overscan',
+					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					default: '0.0',
+				}
+				*/
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				switch(opt.screen_studiocamera_transform_type) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setPosition',
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+								'xPos':parseFloat(opt.screen_studiocamera_transform_position_x),
+								'yPos':parseFloat(opt.screen_studiocamera_transform_position_y),
+								'zPos':parseFloat(opt.screen_studiocamera_transform_position_z)});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setRotation',
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+								'xRot':parseFloat(opt.screen_studiocamera_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_studiocamera_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_studiocamera_transform_rotation_z)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTransformation',
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+								'xPos':parseFloat(opt.screen_studiocamera_transform_position_x),
+								'yPos':parseFloat(opt.screen_studiocamera_transform_position_y),
+								'zPos':parseFloat(opt.screen_studiocamera_transform_position_z),
+								'xRot':parseFloat(opt.screen_studiocamera_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_studiocamera_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_studiocamera_transform_rotation_z),
+								'fov':parseFloat(opt.screen_studiocamera_transform_fov),
+								'aspectRatio':parseFloat(opt.screen_studiocamera_transform_aspectratio)});
+						break;
+					/*
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTransformationAndLensProps',
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+								'xPos':parseFloat(opt.screen_studiocamera_transform_position_x),
+								'yPos':parseFloat(opt.screen_studiocamera_transform_position_y),
+								'zPos':parseFloat(opt.screen_studiocamera_transform_position_z),
+								'xRot':parseFloat(opt.screen_studiocamera_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_studiocamera_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_studiocamera_transform_rotation_z),
+								'fov':parseFloat(opt.screen_studiocamera_transform_fov),
+								'aspectRatio':parseFloat(opt.screen_studiocamera_transform_aspectratio),
+								'nearClip':parseFloat(opt.screen_studiocamera_transform_nearclip),
+								'farClip':parseFloat(opt.screen_studiocamera_transform_farclip),
+								'aperture':parseFloat(opt.screen_studiocamera_transform_aperture),
+								'focus':parseFloat(opt.screen_studiocamera_transform_focus),
+								'iris':parseFloat(opt.screen_studiocamera_transform_iris),
+								'k1':parseFloat(opt.screen_studiocamera_transform_k1),
+								'k2':parseFloat(opt.screen_studiocamera_transform_k2),
+								'centerX':parseFloat(opt.screen_studiocamera_transform_centerx),
+								'centerY':parseFloat(opt.screen_studiocamera_transform_centery),
+								'panelWidth':parseFloat(opt.screen_studiocamera_transform_panelwidth)});
+						break;
+					case 5:
+						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTransformationAndLensPropsExt',
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+								'xPos':parseFloat(opt.screen_studiocamera_transform_position_x),
+								'yPos':parseFloat(opt.screen_studiocamera_transform_position_y),
+								'zPos':parseFloat(opt.screen_studiocamera_transform_position_z),
+								'xRot':parseFloat(opt.screen_studiocamera_transform_rotation_x),
+								'yRot':parseFloat(opt.screen_studiocamera_transform_rotation_y),
+								'zRot':parseFloat(opt.screen_studiocamera_transform_rotation_z),
+								'fov':parseFloat(opt.screen_studiocamera_transform_fov),
+								'aspectRatio':parseFloat(opt.screen_studiocamera_transform_aspectratio),
+								'nearClip':parseFloat(opt.screen_studiocamera_transform_nearclip),
+								'farClip':parseFloat(opt.screen_studiocamera_transform_farclip),
+								'aperture':parseFloat(opt.screen_studiocamera_transform_aperture),
+								'focus':parseFloat(opt.screen_studiocamera_transform_focus),
+								'focalDistance':parseFloat(opt.screen_studiocamera_transform_focaldistance),
+								'zoom':parseFloat(opt.screen_studiocamera_transform_zoom),
+								'iris':parseFloat(opt.screen_studiocamera_transform_iris),
+								'k1':parseFloat(opt.screen_studiocamera_transform_k1),
+								'k2':parseFloat(opt.screen_studiocamera_transform_k2),
+								'k3':parseFloat(opt.screen_studiocamera_transform_k3),
+								'p1':parseFloat(opt.screen_studiocamera_transform_p1),
+								'p2':parseFloat(opt.screen_studiocamera_transform_p2),
+								'centerX':parseFloat(opt.screen_studiocamera_transform_centerx),
+								'centerY':parseFloat(opt.screen_studiocamera_transform_centery),
+								'panelWidth':parseFloat(opt.screen_studiocamera_transform_panelwidth),
+								'overscan':parseFloat(opt.screen_studiocamera_transform_overscan)});
+						break;
+					*/
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/6/2023 by Cody Luketic
+		actions.screen_studiocamera_tracking = {
+			name: 'Screen Studio Camera Tracking',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Studio Camera Name',
+					id: 'screen_studiocamera_tracking_studiocameraname',
+					default: 0,
+					choices: self.CHOICES_STUDIOCAMERANAME
+				},
+				{
+					type: 'checkbox',
+					label: 'Pause Tracking Input: Make Toggle',
+					id: 'screen_studiocamera_tracking_trackinginputpause_toggle',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Pause Tracking Input',
+					id: 'screen_studiocamera_tracking_trackinginputpause',
+					isVisible: (options) => options.screen_studiocamera_tracking_trackinginputpause_toggle == 0,
+					default: false,
+				},
+				{
+					type: 'checkbox',
+					label: 'Use Position Properties From Tracking: Make Toggle',
+					id: 'screen_studiocamera_tracking_positionfromtracking_toggle',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Use Position Properties From Tracking',
+					id: 'screen_studiocamera_tracking_positionfromtracking',
+					isVisible: (options) => options.screen_studiocamera_tracking_positionfromtracking_toggle == 0,
+					default: false,
+				},
+				{
+					type: 'checkbox',
+					label: 'Use Rotation Properties From Tracking: Make Toggle',
+					id: 'screen_studiocamera_tracking_rotationfromtracking_toggle',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Use Rotation Properties From Tracking',
+					id: 'screen_studiocamera_tracking_rotationfromtracking',
+					isVisible: (options) => options.screen_studiocamera_tracking_rotationfromtracking_toggle == 0,
+					default: false,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				
+				if(opt.screen_studiocamera_trackinginputpause_toggle) {
+					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
+					self.pixera.sendParams(19,'Pixera.Screens.StudioCamera.getTrackingInputPause',
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTrackingInputPause',
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname),
+							'pause':opt.screen_studiocamera_tracking_trackinginputpause});
+				}
+
+				if(opt.screen_studiocamera_tracking_positionfromtracking_toggle) {
+					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
+					self.pixera.sendParams(20,'Pixera.Screens.StudioCamera.getUsePositionPropertiesFromTracking',
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setUsePositionPropertiesFromTracking',
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname),
+							'pause':opt.screen_studiocamera_tracking_positionfromtracking});
+				}
+
+				if(opt.screen_studiocamera_tracking_rotationfromtracking_toggle) {
+					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
+					self.pixera.sendParams(21,'Pixera.Screens.StudioCamera.getUseRotationPropertiesFromTracking',
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setUseRotationPropertiesFromTracking',
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname),
+							'pause':opt.screen_studiocamera_tracking_rotationfromtracking});
+				}
 			}
 		}
 
@@ -324,6 +1093,162 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 				self.pixera.sendParams(0,'Pixera.Screens.Screen.setIsProjectable',{'handle':parseInt(opt.visible_projectable_name),'isProjectable':JSON.parse(opt.visible_projectable_state)});
+			}
+		}
+
+		//Created 11/6/2023 by Cody Luketic
+		actions.projector_transform = {
+			name: 'Projector Transform',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Projector Name',
+					id: 'projector_transform_projectorname',
+					default: 0,
+					choices: self.CHOICES_PROJECTORNAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Type',
+					id: 'projector_transform_type',
+					default: 3,
+					choices:[
+						{label: 'Position', id: 1},
+						{label: 'Rotation', id: 2},
+						{label: 'Position and Rotation', id: 3}
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Position X',
+					id: 'projector_transform_position_x',
+					isVisible: (options) => options.projector_transform_type == 1
+						|| options.projector_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Y',
+					id: 'projector_transform_position_y',
+					isVisible: (options) => options.projector_transform_type == 1
+						|| options.projector_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Z',
+					id: 'projector_transform_position_z',
+					isVisible: (options) => options.projector_transform_type == 1
+						|| options.projector_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation X',
+					id: 'projector_transform_rotation_x',
+					isVisible: (options) => options.projector_transform_type == 2
+						|| options.projector_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Y',
+					id: 'projector_transform_rotation_y',
+					isVisible: (options) => options.projector_transform_type == 2
+						|| options.projector_transform_type == 3,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Rotation Z',
+					id: 'projector_transform_rotation_z',
+					isVisible: (options) => options.projector_transform_type == 2
+						|| options.projector_transform_type == 3,
+					default: '0.0',
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				switch(opt.projector_transform_type) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Projectors.Projector.setPosition',
+							{'handle':parseInt(opt.projector_transform_projectorname),
+								'xPos':parseFloat(opt.projector_transform_position_x),
+								'yPos':parseFloat(opt.projector_transform_position_y),
+								'zPos':parseFloat(opt.projector_transform_position_z)});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Projectors.Projector.setRotation',
+							{'handle':parseInt(opt.projector_transform_projectorname),
+								'xRot':parseFloat(opt.projector_transform_rotation_x),
+								'yRot':parseFloat(opt.projector_transform_rotation_y),
+								'zRot':parseFloat(opt.projector_transform_rotation_z)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Projectors.Projector.setPosition',
+							{'handle':parseInt(opt.projector_transform_projectorname),
+								'xPos':parseFloat(opt.projector_transform_position_x),
+								'yPos':parseFloat(opt.projector_transform_position_y),
+								'zPos':parseFloat(opt.projector_transform_position_z)});
+
+						self.pixera.sendParams(0,'Pixera.Projectors.Projector.setRotation',
+							{'handle':parseInt(opt.projector_transform_projectorname),
+								'xRot':parseFloat(opt.projector_transform_rotation_x),
+								'yRot':parseFloat(opt.projector_transform_rotation_y),
+								'zRot':parseFloat(opt.projector_transform_rotation_z)});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/6/2023 by Cody Luketic
+		actions.projector_blackout = {
+			name: 'Projector Blackout Toggle',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Projector Name',
+					id: 'projector_blackout_projectorname',
+					default: 0,
+					choices: self.CHOICES_PROJECTORNAME
+				}/*,
+				{
+					type: 'checkbox',
+					label: 'Make Toggle',
+					id: 'projector_blackout_toggle',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Blackout',
+					id: 'projector_blackout_state',
+					isVisible: (options) => options.projector_blackout_toggle == 0,
+					default: false,
+				}
+				*/
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				self.PROJECTOR_BLACKOUT_PROJECTORNAME = opt.projector_blackout_projectorname;
+				self.pixera.sendParams(22,'Pixera.Projectors.Projector.getBlackout',
+					{'handle':parseInt(opt.projector_blackout_projectorname)});
+				
+				/*
+				if(opt.projector_blackout_toggle) {
+					self.PROJECTOR_BLACKOUT_PROJECTORNAME = opt.projector_blackout_projectorname;
+					self.pixera.sendParams(22,'Pixera.Projectors.Projector.getBlackout',
+						{'handle':parseInt(opt.projector_blackout_projectorname)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.Projectors.Projector.setBlackout',
+						{'handle':parseInt(opt.projector_blackout_projectorname),
+							'isActive':projector_blackout_state});
+				}
+				*/
 			}
 		}
 
@@ -637,7 +1562,8 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.scrubCurrentTime',
-					{'handle':parseInt(opt.timeline_scrubcurrenttime_timelinename), 'frames':parseInt(opt.timeline_scrubcurrenttime_frames)});
+					{'handle':parseInt(opt.timeline_scrubcurrenttime_timelinename),
+						'frames':parseInt(opt.timeline_scrubcurrenttime_frames)});
 			}
 		}
 
@@ -1055,7 +1981,7 @@ module.exports  = {
 				},
 				{
 					type: 'checkbox',
-					label: 'Toggle',
+					label: 'Make Toggle',
 					id: 'layer_mute_extended_toggle',
 					default: true,
 				},
@@ -1069,7 +1995,7 @@ module.exports  = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				
+
 				if(opt.layer_mute_extended_toggle) {
 					if(opt.layer_mute_extended_parameter == 1) {
 						self.pixera.sendParams(44,'Pixera.Timelines.Layer.getInst',
@@ -1499,7 +2425,7 @@ module.exports  = {
 				},
 				{
 					type: 'checkbox',
-					label: 'Toggle Mute',
+					label: 'Make Toggle',
 					id: 'livesystems_setaudiomaster_mute_toggle',
 					default: false,
 				},

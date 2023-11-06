@@ -1,4 +1,5 @@
 const {instanceStatus,TCPHelper} = require('@companion-module/base');
+const { forEach } = require('lodash');
 const { isIP } = require('net');
 
 class Pixera {
@@ -41,6 +42,8 @@ class Pixera {
         this.initVariables();
         this.initTimelines();
         this.initScreens();
+        this.initStudioCameras();
+        this.initProjectors();
         this.initLiveSystems();
         if(self.config.polling)
 				{
@@ -165,6 +168,11 @@ class Pixera {
     self.CHOICES_TIMELINEFEEDBACK = [];
 		self.CHOICES_SCREENNAME = [{label: '',id:0}];
 		self.CHOICES_SCREENHANDLE = [];
+    self.CHOICES_PROJECTORNAME = [{label: '',id:0}];
+		self.CHOICES_PROJECTORHANDLE = [];
+    self.CHOICES_STUDIOCAMERANAME = [{label: '',id:0}];
+		self.CHOICES_STUDIOCAMERAHANDLE = [];
+    self.CHOICES_STUDIOCAMERACURRENTHANDLE = '';
 		self.CHOICES_CUENAME = [];
 		self.CHOICES_CUEHANDLE = [];
 		self.CHOICES_FADELIST = [];
@@ -175,6 +183,16 @@ class Pixera {
 		let self = this.instance;
 		this.send(13,'Pixera.Screens.getScreens');
     this.send(14,'Pixera.Screens.getScreenNames');
+  }
+  initStudioCameras(){
+    let self = this.instance;
+
+		this.send(15,'Pixera.Screens.getStudioCameras');
+  }
+  initProjectors(){
+		let self = this.instance;
+		this.send(17,'Pixera.Projectors.getProjectors');
+    this.send(18,'Pixera.Projectors.getProjectorNames');
   }
   processReceivedData(data){
 		let self = this.instance;
@@ -223,7 +241,6 @@ class Pixera {
           self.updateActions();
         }
         break;
-
         case 7: //toggle audio mute by getting current and sending the reverse
         {
           let result = jsonData.result;
@@ -235,7 +252,6 @@ class Pixera {
           }
         }
         break;
-
         case 8:   //set layer name from handle
         {
           let result = jsonData.result;
@@ -245,7 +261,6 @@ class Pixera {
           }
         }
         break;
-
         case 9: //create cue at current time
         {
           let result = jsonData.result;
@@ -259,7 +274,6 @@ class Pixera {
           }
         }
         break;
-
 				case 11:  //get timeline list
 				{
 					let result = jsonData.result;
@@ -273,7 +287,6 @@ class Pixera {
 					self.updateActions();
 				}
 				break;
-
 				case 12:  //get timeline attributes
 				{
 					let result = jsonData.result;
@@ -312,6 +325,91 @@ class Pixera {
             }
           }
           self.updateActions();
+        }
+        break;
+        case 15:  //Pixera.Screens.getStudioCameras
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.CHOICES_STUDIOCAMERAHANDLE = result;
+          }
+    
+          for (let i = 0; i < self.CHOICES_STUDIOCAMERAHANDLE.length; i++) {
+            self.CHOICES_STUDIOCAMERACURRENTHANDLE = self.CHOICES_STUDIOCAMERAHANDLE[i];
+
+            this.sendParams(16,'Pixera.Screens.StudioCamera.getName',
+              {'handle':parseInt(self.CHOICES_STUDIOCAMERAHANDLE[i])});
+          }
+          self.updateActions();
+        }
+        break;
+        case 16:  //Pixera.Screens.StudioCamera.getName
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.CHOICES_STUDIOCAMERANAME.push({label: result, id:self.CHOICES_STUDIOCAMERACURRENTHANDLE});
+          }
+          self.updateActions();
+        }
+        break;
+        case 17:  //Pixera.Projectors.getProjectors
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.CHOICES_PROJECTORHANDLE = result;
+          }
+          self.updateActions();
+        }
+        break;
+        case 18:  //Pixera.Projectors.getProjectorNames
+        {
+          let result = jsonData.result;
+          if(result != null){
+            for(var i = 0; i<result.length;i++){
+              self.CHOICES_PROJECTORNAME.push({label: result[i],id:self.CHOICES_PROJECTORHANDLE[i]});
+            }
+          }
+          self.updateActions();
+        }
+        break;
+        case 19: //toggle tracking input pause by getting current and sending the reverse
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTrackingInputPause',
+              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
+                'pause':!result});
+          }
+        }
+        break;
+        case 20: //toggle use position properties from tracking pause by getting current and sending the reverse
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setUsePositionPropertiesFromTracking',
+              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
+                'pause':!result});
+          }
+        }
+        break;
+        case 21: //toggle use rotation properties from tracking pause by getting current and sending the reverse
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setUseRotationPropertiesFromTracking',
+              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
+                'pause':!result});
+          }
+        }
+        break;
+        case 22: //toggle blackout by getting current and sending the reverse
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.pixera.sendParams(0,'Pixera.Projectors.Projector.setBlackout',
+              {'handle':self.PROJECTOR_BLACKOUT_PROJECTORNAME,
+                'isActive':!result});
+          }
         }
         break;
         case 33: //Pixera.Timelines.Timeline.CueHandle -> Pixera.Timelines.Cue.blendToThis
