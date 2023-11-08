@@ -227,6 +227,621 @@ module.exports  = {
 			}
 		}
 
+		//Updated 10/30/2023 by Cody Luketic
+		actions.session_project = {
+			name: 'Session Project',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'session_project_action',
+					default: 1,
+					choices:[
+						{label: 'Save', id: 1},
+						{label: 'Save As', id: 2},
+						{label: 'Load', id: 3},
+						{label: 'Close', id: 4}
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Project Path',
+					id: 'session_project_projectpath',
+					isVisible: (options) => options.session_project_action == 2 || options.session_project_action == 3,
+					default: 'C:\\Dump',
+				},
+				{
+					type: 'checkbox',
+					label: 'Save Project',
+					id: 'session_project_saveproject',
+					isVisible: (options) => options.session_project_action == 4,
+					default: true,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				switch (opt.session_project_action) {
+					case 1:
+						self.pixera.send(0,'Pixera.Session.saveProject');
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Session.saveProjectAs',
+							{'path':opt.session_project_projectpath});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Session.loadProject',
+							{'path':opt.session_project_projectpath});
+						break;
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Session.closeApp',
+							{'saveProject':opt.session_project_saveproject});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 10/31/2023 by Cody Luketic
+		actions.session_livesystem = {
+			name: 'Session Livesystem',
+			options: [
+				{
+					type: 'checkbox',
+					label: 'All Live Systems',
+					id: 'session_livesystem_all',
+					default: false,
+				},
+				{
+					type: 'textinput',
+					label: 'IP',
+					id: 'session_livesystem_ip',
+					isVisible: (options) => options.session_livesystem_all == 0,
+					default: '127.0.0.1',
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'session_livesystem_action',
+					default: 0,
+					choices:[
+						{label: 'Start', id: 1},
+						{label: 'Stop', id: 2},
+						{label: 'Restart', id: 3}
+					]
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				if(opt.session_livesystem_all) {
+					switch (opt.session_livesystem_action) {
+						case 1:
+							self.pixera.send(0,'Pixera.Session.startLiveSystems');
+							break;
+						case 2:
+							self.pixera.send(0,'Pixera.Session.stopLiveSystems');
+							break;
+						case 3:
+							self.pixera.send(0,'Pixera.Session.restartLiveSystems');
+							break;
+						default:
+							break;
+					}
+				}
+				else {
+					switch (opt.session_livesystem_action) {
+						case 1:
+							self.pixera.sendParams(0,'Pixera.Session.startLiveSystem',
+								{'ip':opt.session_livesystem_ip});
+							break;
+						case 2:
+							self.pixera.sendParams(0,'Pixera.Session.stopLiveSystem',
+								{'ip':opt.session_livesystem_ip});
+							break;
+						case 3:
+							self.pixera.sendParams(0,'Pixera.Session.restartLiveSystem',
+								{'ip':opt.session_livesystem_ip});
+							break;
+						default:
+							break;
+					}
+				}
+			}
+		}
+
+		//Created 10/30/2023 by Cody Luketic
+		actions.session_setvideostreamactivestate = {
+			name: 'Session Set Video Stream Active State',
+			options: [
+				{
+					type: 'textinput',
+					label: 'IP',
+					id: 'session_setvideostreamactivestate_ip',
+					default: '127.0.0.1',
+				},
+				{
+					type: 'textinput',
+					label: 'Device',
+					id: 'session_setvideostreamactivestate_device',
+					default: '',
+				},
+				{
+					type: 'checkbox',
+					label: 'Is Active',
+					id: 'session_setvideostreamactivestate_isactive',
+					default: false,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				self.pixera.sendParams(0,'Pixera.Session.setVideoStreamActiveState',
+					{'ip':opt.session_setvideostreamactivestate_ip,
+						'device':opt.session_setvideostreamactivestate_device,
+						'isActive':opt.session_setvideostreamactivestate_isactive});
+			}
+		}
+
+		//Created 10/27/2023 by Cody Luketic
+		actions.livesystems_engine = {
+			name: 'Live Systems Engine',
+			options: [
+				{
+					type: 'checkbox',
+					label: 'All Live Systems',
+					id: 'livesystems_engine_all',
+					default: false,
+				},
+				{
+					type: 'dropdown',
+					label: 'Live System',
+					id: 'livesystems_engine_livesystem',
+					default: 0,
+					isVisible: (options) => options.livesystems_engine_all == 0,
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'checkbox',
+					label: 'Exclude Local',
+					id: 'livesystems_engine_local',
+					isVisible: (options) => options.livesystems_engine_all == 1,
+					default: true,
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'livesystems_engine_action',
+					default: 0,
+					choices:[
+						{label: 'Start', id: 1},
+						{label: 'Close', id: 2},
+						{label: 'Restart', id: 3},
+						{label: 'Reset', id: 4},
+						{label: 'Wake Up', id: 5}
+					]
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.livesystems_engine_action;
+
+				if(opt.livesystems_engine_all) {
+					for (let i = 0; i < self.CHOICES_LIVESYSTEMNAME.length; i++) {
+						let handle = self.CHOICES_LIVESYSTEMNAME[i].id;
+						if(!opt.livesystems_engine_local) {
+							switch (id) {
+								case 1:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
+										{'handle':parseInt(handle)});
+									break;
+								case 2:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
+										{'handle':parseInt(handle)});
+									break;
+								case 3:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
+										{'handle':parseInt(handle)});
+									break;
+								case 4:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
+										{'handle':parseInt(handle)});
+									break;
+								case 5:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
+										{'handle':parseInt(handle)});
+									break;
+								default:
+									break;
+							}
+						}
+						else if(self.CHOICES_LIVESYSTEMNAME[i].label != 'Local') {
+							switch (id) {
+								case 1:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
+										{'handle':parseInt(handle)});
+									break;
+								case 2:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
+										{'handle':parseInt(handle)});
+									break;
+								case 3:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
+										{'handle':parseInt(handle)});
+									break;
+								case 4:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
+										{'handle':parseInt(handle)});
+									break;
+								case 5:
+									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
+										{'handle':parseInt(handle)});
+									break;
+								default:
+									break;
+							}
+						}
+					}
+				}
+				else {
+					switch (id) {
+						case 1:
+							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
+								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+							break;
+						case 2:
+							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
+								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+							break;
+						case 3:
+							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
+								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+							break;
+						case 4:
+							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
+								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+							break;
+						case 5:
+							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
+								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+							break;
+						default:
+							break;
+					}
+				}
+			}
+		}
+
+		//Created 10/30/2023 by Cody Luketic
+		actions.livesystems_exportMappings = {
+			name: 'Live Systems Export Mappings',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Live System',
+					id: 'livesystems_exportMappings_livesystem',
+					default: 0,
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'textinput',
+					label: 'Export Path',
+					id: 'livesystems_exportMappings_exportpath',
+					default: 'C:\\Dump',
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.exportMappings',
+					{'handle':parseInt(opt.livesystems_exportMappings_livesystem),'path':opt.livesystems_exportMappings_exportpath});
+			}
+		}
+
+		//Updated 10/31/2023 by Cody Luketic
+		actions.livesystems_setaudiomaster_volume = {
+			name: 'Live Systems Set Audio Master Volume',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Live System',
+					id: 'livesystems_setaudiomaster_volume_livesystem',
+					default: 0,
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'textinput',
+					label: 'Channels',
+					id: 'livesystems_setaudiomaster_volume_channels',
+					default: '1,2',
+				},
+				{
+					type: 'textinput',
+					label: 'Volume',
+					id: 'livesystems_setaudiomaster_volume_value',
+					default: 1.0,
+					regex: self.REGEX_FLOAT
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				let channels = opt.livesystems_setaudiomaster_volume_channels.split(',')
+				for (let i = 0; i < channels.length; i++) {
+					self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',
+					{'handle':parseInt(opt.livesystems_setaudiomaster_volume_livesystem),
+						'channel':parseInt(channels[i]),
+						'volume':parseFloat(opt.livesystems_setaudiomaster_volume_value)});
+					
+				}
+			}
+		}
+
+		//Updated 10/31/2023 by Cody Luketic
+		actions.livesystems_setaudiomaster_mute = {
+			name: 'Live Systems Set Audio Master Mute',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Live System',
+					id: 'livesystems_setaudiomaster_mute_livesystem',
+					default: 0,
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'textinput',
+					label: 'Channel',
+					id: 'livesystems_setaudiomaster_mute_channel',
+					default: '1',
+				},
+				{
+					type: 'checkbox',
+					label: 'Make Toggle',
+					id: 'livesystems_setaudiomaster_mute_toggle',
+					default: false,
+				},
+				{
+					type: 'checkbox',
+					label: 'Mute',
+					id: 'livesystems_setaudiomaster_mute_state',
+					isVisible: (options) => options.livesystems_setaudiomaster_mute_toggle == 0,
+					default: false,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				if(opt.livesystems_setaudiomaster_mute_toggle) {
+					self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_LIVESYSTEM = parseInt(opt.livesystems_setaudiomaster_mute_livesystem);
+					self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_CHANNEL = parseInt(opt.livesystems_setaudiomaster_mute_channel);
+
+					self.pixera.sendParams(24,'Pixera.LiveSystems.LiveSystem.getAudioMasterMute',
+						{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
+							'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterMute',
+						{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
+							'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel),
+							'state':opt.livesystems_setaudiomaster_mute_state});
+				}
+			}
+		}
+		
+		//Updated 10/31/2023 by Cody Luketic
+		actions.livesystems_setaudiotimecodeinput = {
+			name: 'Live Systems Set Audio Timecode Input',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Live System',
+					id: 'livesystems_setaudiotimecodeinput_livesystem',
+					default: 0,
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'textinput',
+					label: 'Channel',
+					id: 'livesystems_setaudiotimecodeinput_channel',
+					default: '1',
+				},
+				{
+					type: 'checkbox',
+					label: 'State',
+					id: 'livesystems_setaudiotimecodeinput_state',
+					default: true,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+
+				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioTimecodeInput',
+					{'handle':parseInt(opt.livesystems_setaudiotimecodeinput_livesystem),
+						'channel':parseInt(opt.livesystems_setaudiotimecodeinput_channel),
+						'state':opt.livesystems_setaudiotimecodeinput_state});
+			}
+		}
+
+		//Created 11/7/2023 by Cody Luketic
+		actions.output_status = {
+			name: 'Output Status',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Output Name',
+					id: 'output_status_outputname',
+					default: 0,
+					choices: self.CHOICES_OUTPUTNAME
+				},
+				{
+					type: 'checkbox',
+					label: 'Active: Make Toggle',
+					id: 'output_status_active_toggle',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Active',
+					id: 'output_status_active',
+					isVisible: (options) => options.output_status_active_toggle == 0,
+					default: false,
+				},
+				{
+					type: 'checkbox',
+					label: 'Identify: Make Toggle',
+					id: 'output_status_identify_toggle',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Identify',
+					id: 'output_status_identify',
+					isVisible: (options) => options.output_status_identify_toggle == 0,
+					default: false,
+				},
+				{
+					type: 'checkbox',
+					label: 'Is Output Aggregate: Make Toggle',
+					id: 'output_status_isoutputaggregate_toggle',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Is Output Aggregate',
+					id: 'output_status_isoutputaggregate',
+					isVisible: (options) => options.output_status_isoutputaggregate_toggle == 0,
+					default: false,
+				},
+				{
+					type: 'checkbox',
+					label: 'Set Aggregate Dimensions',
+					id: 'output_status_aggregateddimensions',
+					isVisible: (options) => options.output_status_isoutputaggregate_toggle == 1
+						|| options.output_status_isoutputaggregate == 1,
+					default: false,
+				},
+				{
+					type: 'textinput',
+					label: 'Horizontal Count',
+					id: 'output_status_aggregatedimensions_horizontalcount',
+					isVisible: (options) => options.output_status_aggregatedimensions == 1,
+					default: '1',
+				},
+				{
+					type: 'textinput',
+					label: 'Vertical Count',
+					id: 'output_status_aggregatedimensions_verticalcount',
+					isVisible: (options) => options.output_status_aggregatedimensions == 1,
+					default: '1',
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				
+				if(opt.output_status_active_toggle) {
+					self.OUTPUT_STATUS_OUTPUTNAME = opt.output_status_outputname;
+					self.pixera.sendParams(25,'Pixera.LiveSystems.Output.getActive',
+						{'handle':parseInt(opt.output_status_outputname)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.LiveSystems.Output.setActive',
+						{'handle':parseInt(opt.output_status_outputname),
+							'active':opt.output_status_active});
+				}
+
+				if(opt.output_status_identify_toggle) {
+					self.OUTPUT_STATUS_OUTPUTNAME = opt.output_status_outputname;
+					self.pixera.sendParams(26,'Pixera.LiveSystems.Output.getIdentify',
+						{'handle':parseInt(opt.output_status_outputname)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.LiveSystems.Output.setIdentify',
+						{'handle':parseInt(opt.output_status_outputname),
+							'state':opt.output_status_identify});
+				}
+
+				if(opt.output_status_isoutputaggregate_toggle) {
+					self.OUTPUT_STATUS_OUTPUTNAME = opt.output_status_outputname;
+					self.pixera.sendParams(27,'Pixera.LiveSystems.Output.getIsOutputAggregate',
+						{'handle':parseInt(opt.output_status_outputname)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.LiveSystems.Output.setIsOutputAggregate',
+						{'handle':parseInt(opt.output_status_outputname),
+							'state':opt.output_status_isoutputaggregate});
+				}
+
+				if(opt.output_status_aggregateddimensions) {
+					self.pixera.sendParams(0,'Pixera.LiveSystems.Output.setAggregateDims',
+						{'handle':parseInt(opt.output_status_outputname),
+							'horizontalCount':parseInt(opt.output_status_aggregatedimensions_horizontalcount),
+							'verticalCount':parseInt(opt.output_status_aggregatedimensions_verticalcount)});
+				}
+			}
+		}
+
+		//Created 11/7/2023 by Cody Luketic
+		actions.output_assignment = {
+			name: 'Output Assignment',
+			options: [
+				/*
+				{
+					type: 'checkbox',
+					label: 'Object Type',
+					id: 'output_assignment_type',
+					default: 1,
+					choices:[
+						{label: 'Screen', id: 1},
+						{label: 'Projector', id: 2}
+					]
+				},
+				{
+					type: 'dropdown',
+					label: 'Screen Name',
+					id: 'output_assignment_screenname',
+					isVisible: (options) => options.output_assignment_type == 1,
+					default: 0,
+					choices: self.CHOICES_SCREENNAME
+				},*/
+				{
+					type: 'dropdown',
+					label: 'Projector Name',
+					id: 'output_assignment_projectorname',
+					/*isVisible: (options) => options.output_assignment_type == 2,*/
+					default: 0,
+					choices: self.CHOICES_PROJECTORNAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Output Name',
+					id: 'output_assignment_outputname',
+					default: 0,
+					choices: self.CHOICES_OUTPUTNAME
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				
+				/*
+				if(opt.output_assignment_type == 1) {
+					self.pixera.sendParams(0,'Pixera.Screens.Screen.setOutput',
+						{'handle':parseInt(opt.output_assignment_outputname)});
+				}
+				else {
+					self.pixera.sendParams(0,'Pixera.Projectors.Projector.setOutput',
+						{'handle':parseInt(opt.output_assignment_outputname)});
+				}
+				*/
+
+				self.log('warn', 'Projector Handle: ' + opt.output_assignment_projectorname);
+				self.log('warn', 'Output Handle: ' + opt.output_assignment_outputname);
+				self.pixera.sendParams(0,'Pixera.Projectors.Projector.setOutput',
+					{'handle':parseInt(opt.output_assignment_projectorname),
+						'outputHandle':parseInt(opt.output_assignment_outputname)});
+			}
+		}
+
 		//Created 11/3/2023 by Cody Luketic
 		actions.screen_transform = {
 			name: 'Screen Transform',
@@ -1001,7 +1616,7 @@ module.exports  = {
 				
 				if(opt.screen_studiocamera_trackinginputpause_toggle) {
 					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
-					self.pixera.sendParams(19,'Pixera.Screens.StudioCamera.getTrackingInputPause',
+					self.pixera.sendParams(28,'Pixera.Screens.StudioCamera.getTrackingInputPause',
 						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
 				}
 				else {
@@ -1012,7 +1627,7 @@ module.exports  = {
 
 				if(opt.screen_studiocamera_tracking_positionfromtracking_toggle) {
 					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
-					self.pixera.sendParams(20,'Pixera.Screens.StudioCamera.getUsePositionPropertiesFromTracking',
+					self.pixera.sendParams(29,'Pixera.Screens.StudioCamera.getUsePositionPropertiesFromTracking',
 						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
 				}
 				else {
@@ -1023,7 +1638,7 @@ module.exports  = {
 
 				if(opt.screen_studiocamera_tracking_rotationfromtracking_toggle) {
 					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
-					self.pixera.sendParams(21,'Pixera.Screens.StudioCamera.getUseRotationPropertiesFromTracking',
+					self.pixera.sendParams(30,'Pixera.Screens.StudioCamera.getUseRotationPropertiesFromTracking',
 						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
 				}
 				else {
@@ -1214,41 +1829,14 @@ module.exports  = {
 					id: 'projector_blackout_projectorname',
 					default: 0,
 					choices: self.CHOICES_PROJECTORNAME
-				}/*,
-				{
-					type: 'checkbox',
-					label: 'Make Toggle',
-					id: 'projector_blackout_toggle',
-					default: true,
-				},
-				{
-					type: 'checkbox',
-					label: 'Blackout',
-					id: 'projector_blackout_state',
-					isVisible: (options) => options.projector_blackout_toggle == 0,
-					default: false,
 				}
-				*/
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
 				self.PROJECTOR_BLACKOUT_PROJECTORNAME = opt.projector_blackout_projectorname;
-				self.pixera.sendParams(22,'Pixera.Projectors.Projector.getBlackout',
+				self.pixera.sendParams(31,'Pixera.Projectors.Projector.getBlackout',
 					{'handle':parseInt(opt.projector_blackout_projectorname)});
-				
-				/*
-				if(opt.projector_blackout_toggle) {
-					self.PROJECTOR_BLACKOUT_PROJECTORNAME = opt.projector_blackout_projectorname;
-					self.pixera.sendParams(22,'Pixera.Projectors.Projector.getBlackout',
-						{'handle':parseInt(opt.projector_blackout_projectorname)});
-				}
-				else {
-					self.pixera.sendParams(0,'Pixera.Projectors.Projector.setBlackout',
-						{'handle':parseInt(opt.projector_blackout_projectorname),
-							'isActive':projector_blackout_state});
-				}
-				*/
 			}
 		}
 
@@ -1664,7 +2252,7 @@ module.exports  = {
 
 				self.CREATE_LAYER_LAYERNAME = opt.timeline_create_layer_layername;
 
-				self.pixera.sendParams(8,'Pixera.Timelines.Timeline.createLayer',
+				self.pixera.sendParams(32,'Pixera.Timelines.Timeline.createLayer',
 					{'handle':parseInt(opt.timeline_create_layer_timelinename)});
 			}
 		}
@@ -1741,7 +2329,7 @@ module.exports  = {
 					self.TIMELINE_CREATE_CUE_CUENAME = opt.timeline_create_cue_cuename;
 					self.TIMELINE_CREATE_CUE_CUEOPERATION = parseInt(opt.timeline_create_cue_cueoperation);
 
-					self.pixera.sendParams(9,'Pixera.Timelines.Timeline.getCurrentTime',
+					self.pixera.sendParams(26,'Pixera.Timelines.Timeline.getCurrentTime',
 						{'handle':parseInt(opt.timeline_create_cue_timelinename)});
 				}
 				else {
@@ -2052,442 +2640,6 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 				self.pixera.sendParams(0,'Pixera.Compound.setParamValue',{'path': opt.layerPath ,'value': parseFloat(opt.layerValue)});
-			}
-		}
-
-		//Updated 10/30/2023 by Cody Luketic
-		actions.session_project = {
-			name: 'Session Project',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Action',
-					id: 'session_project_action',
-					default: 1,
-					choices:[
-						{label: 'Save', id: 1},
-						{label: 'Save As', id: 2},
-						{label: 'Load', id: 3},
-						{label: 'Close', id: 4}
-					]
-				},
-				{
-					type: 'textinput',
-					label: 'Project Path',
-					id: 'session_project_projectpath',
-					isVisible: (options) => options.session_project_action == 2 || options.session_project_action == 3,
-					default: 'C:\\Dump',
-				},
-				{
-					type: 'checkbox',
-					label: 'Save Project',
-					id: 'session_project_saveproject',
-					isVisible: (options) => options.session_project_action == 4,
-					default: true,
-				}
-			],
-			callback: async (event) => {
-				let opt = event.options;
-
-				switch (opt.session_project_action) {
-					case 1:
-						self.pixera.send(0,'Pixera.Session.saveProject');
-						break;
-					case 2:
-						self.pixera.sendParams(0,'Pixera.Session.saveProjectAs',
-							{'path':opt.session_project_projectpath});
-						break;
-					case 3:
-						self.pixera.sendParams(0,'Pixera.Session.loadProject',
-							{'path':opt.session_project_projectpath});
-						break;
-					case 4:
-						self.pixera.sendParams(0,'Pixera.Session.closeApp',
-							{'saveProject':opt.session_project_saveproject});
-						break;
-					default:
-						break;
-				}
-			}
-		}
-
-		//Created 10/31/2023 by Cody Luketic
-		actions.session_livesystem = {
-			name: 'Session Livesystem',
-			options: [
-				{
-					type: 'checkbox',
-					label: 'All Live Systems',
-					id: 'session_livesystem_all',
-					default: false,
-				},
-				{
-					type: 'textinput',
-					label: 'IP',
-					id: 'session_livesystem_ip',
-					isVisible: (options) => options.session_livesystem_all == 0,
-					default: '127.0.0.1',
-				},
-				{
-					type: 'dropdown',
-					label: 'Action',
-					id: 'session_livesystem_action',
-					default: 0,
-					choices:[
-						{label: 'Start', id: 1},
-						{label: 'Stop', id: 2},
-						{label: 'Restart', id: 3}
-					]
-				}
-			],
-			callback: async (event) => {
-				let opt = event.options;
-
-				if(opt.session_livesystem_all) {
-					switch (opt.session_livesystem_action) {
-						case 1:
-							self.pixera.send(0,'Pixera.Session.startLiveSystems');
-							break;
-						case 2:
-							self.pixera.send(0,'Pixera.Session.stopLiveSystems');
-							break;
-						case 3:
-							self.pixera.send(0,'Pixera.Session.restartLiveSystems');
-							break;
-						default:
-							break;
-					}
-				}
-				else {
-					switch (opt.session_livesystem_action) {
-						case 1:
-							self.pixera.sendParams(0,'Pixera.Session.startLiveSystem',
-								{'ip':opt.session_livesystem_ip});
-							break;
-						case 2:
-							self.pixera.sendParams(0,'Pixera.Session.stopLiveSystem',
-								{'ip':opt.session_livesystem_ip});
-							break;
-						case 3:
-							self.pixera.sendParams(0,'Pixera.Session.restartLiveSystem',
-								{'ip':opt.session_livesystem_ip});
-							break;
-						default:
-							break;
-					}
-				}
-			}
-		}
-
-		//Created 10/30/2023 by Cody Luketic
-		actions.session_setvideostreamactivestate = {
-			name: 'Session Set Video Stream Active State',
-			options: [
-				{
-					type: 'textinput',
-					label: 'IP',
-					id: 'session_setvideostreamactivestate_ip',
-					default: '127.0.0.1',
-				},
-				{
-					type: 'textinput',
-					label: 'Device',
-					id: 'session_setvideostreamactivestate_device',
-					default: '',
-				},
-				{
-					type: 'checkbox',
-					label: 'Is Active',
-					id: 'session_setvideostreamactivestate_isactive',
-					default: false,
-				}
-			],
-			callback: async (event) => {
-				let opt = event.options;
-
-				self.pixera.sendParams(0,'Pixera.Session.setVideoStreamActiveState',
-					{'ip':opt.session_setvideostreamactivestate_ip,
-						'device':opt.session_setvideostreamactivestate_device,
-						'isActive':opt.session_setvideostreamactivestate_isactive});
-			}
-		}
-
-		//Created 10/27/2023 by Cody Luketic
-		actions.livesystems_engine = {
-			name: 'Live Systems Engine',
-			options: [
-				{
-					type: 'checkbox',
-					label: 'All Live Systems',
-					id: 'livesystems_engine_all',
-					default: false,
-				},
-				{
-					type: 'dropdown',
-					label: 'Live System',
-					id: 'livesystems_engine_livesystem',
-					default: 0,
-					isVisible: (options) => options.livesystems_engine_all == 0,
-					choices: self.CHOICES_LIVESYSTEMNAME
-				},
-				{
-					type: 'checkbox',
-					label: 'Exclude Local',
-					id: 'livesystems_engine_local',
-					isVisible: (options) => options.livesystems_engine_all == 1,
-					default: true,
-				},
-				{
-					type: 'dropdown',
-					label: 'Action',
-					id: 'livesystems_engine_action',
-					default: 0,
-					choices:[
-						{label: 'Start', id: 1},
-						{label: 'Close', id: 2},
-						{label: 'Restart', id: 3},
-						{label: 'Reset', id: 4},
-						{label: 'Wake Up', id: 5}
-					]
-				}
-			],
-			callback: async (event) => {
-				let opt = event.options;
-				let id = opt.livesystems_engine_action;
-
-				if(opt.livesystems_engine_all) {
-					for (let i = 0; i < self.CHOICES_LIVESYSTEMNAME.length; i++) {
-						let handle = self.CHOICES_LIVESYSTEMNAME[i].id;
-						if(!opt.livesystems_engine_local) {
-							switch (id) {
-								case 1:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
-										{'handle':parseInt(handle)});
-									break;
-								case 2:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
-										{'handle':parseInt(handle)});
-									break;
-								case 3:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
-										{'handle':parseInt(handle)});
-									break;
-								case 4:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
-										{'handle':parseInt(handle)});
-									break;
-								case 5:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
-										{'handle':parseInt(handle)});
-									break;
-								default:
-									break;
-							}
-						}
-						else if(self.CHOICES_LIVESYSTEMNAME[i].label != 'Local') {
-							switch (id) {
-								case 1:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
-										{'handle':parseInt(handle)});
-									break;
-								case 2:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
-										{'handle':parseInt(handle)});
-									break;
-								case 3:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
-										{'handle':parseInt(handle)});
-									break;
-								case 4:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
-										{'handle':parseInt(handle)});
-									break;
-								case 5:
-									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
-										{'handle':parseInt(handle)});
-									break;
-								default:
-									break;
-							}
-						}
-					}
-				}
-				else {
-					switch (id) {
-						case 1:
-							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
-							break;
-						case 2:
-							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
-							break;
-						case 3:
-							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
-							break;
-						case 4:
-							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
-							break;
-						case 5:
-							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
-							break;
-						default:
-							break;
-					}
-				}
-			}
-		}
-
-		//Created 10/30/2023 by Cody Luketic
-		actions.livesystems_exportMappings = {
-			name: 'Live Systems Export Mappings',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Live System',
-					id: 'livesystems_exportMappings_livesystem',
-					default: 0,
-					choices: self.CHOICES_LIVESYSTEMNAME
-				},
-				{
-					type: 'textinput',
-					label: 'Export Path',
-					id: 'livesystems_exportMappings_exportpath',
-					default: 'C:\\Dump',
-				}
-			],
-			callback: async (event) => {
-				let opt = event.options;
-
-				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.exportMappings',
-					{'handle':parseInt(opt.livesystems_exportMappings_livesystem),'path':opt.livesystems_exportMappings_exportpath});
-			}
-		}
-
-		//Updated 10/31/2023 by Cody Luketic
-		actions.livesystems_setaudiomaster_volume = {
-			name: 'Live Systems Set Audio Master Volume',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Live System',
-					id: 'livesystems_setaudiomaster_volume_livesystem',
-					default: 0,
-					choices: self.CHOICES_LIVESYSTEMNAME
-				},
-				{
-					type: 'textinput',
-					label: 'Channels',
-					id: 'livesystems_setaudiomaster_volume_channels',
-					default: '1,2',
-				},
-				{
-					type: 'textinput',
-					label: 'Volume',
-					id: 'livesystems_setaudiomaster_volume_value',
-					default: 1.0,
-					regex: self.REGEX_FLOAT
-				}
-			],
-			callback: async (event) => {
-				let opt = event.options;
-
-				let channels = opt.livesystems_setaudiomaster_volume_channels.split(',')
-				for (let i = 0; i < channels.length; i++) {
-					self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',
-					{'handle':parseInt(opt.livesystems_setaudiomaster_volume_livesystem),
-						'channel':parseInt(channels[i]),
-						'volume':parseFloat(opt.livesystems_setaudiomaster_volume_value)});
-					
-				}
-			}
-		}
-
-		//Updated 10/31/2023 by Cody Luketic
-		actions.livesystems_setaudiomaster_mute = {
-			name: 'Live Systems Set Audio Master Mute',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Live System',
-					id: 'livesystems_setaudiomaster_mute_livesystem',
-					default: 0,
-					choices: self.CHOICES_LIVESYSTEMNAME
-				},
-				{
-					type: 'textinput',
-					label: 'Channel',
-					id: 'livesystems_setaudiomaster_mute_channel',
-					default: '1',
-				},
-				{
-					type: 'checkbox',
-					label: 'Make Toggle',
-					id: 'livesystems_setaudiomaster_mute_toggle',
-					default: false,
-				},
-				{
-					type: 'checkbox',
-					label: 'Mute',
-					id: 'livesystems_setaudiomaster_mute_state',
-					isVisible: (options) => options.livesystems_setaudiomaster_mute_toggle == 0,
-					default: false,
-				}
-			],
-			callback: async (event) => {
-				let opt = event.options;
-
-				if(opt.livesystems_setaudiomaster_mute_toggle) {
-					self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_LIVESYSTEM = parseInt(opt.livesystems_setaudiomaster_mute_livesystem);
-					self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_CHANNEL = parseInt(opt.livesystems_setaudiomaster_mute_channel);
-
-					self.pixera.sendParams(7,'Pixera.LiveSystems.LiveSystem.getAudioMasterMute',
-						{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
-							'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel)});
-				}
-				else {
-					self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterMute',
-						{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
-							'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel),
-							'state':opt.livesystems_setaudiomaster_mute_state});
-				}
-			}
-		}
-		
-		//Updated 10/31/2023 by Cody Luketic
-		actions.livesystems_setaudiotimecodeinput = {
-			name: 'Live Systems Set Audio Timecode Input',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Live System',
-					id: 'livesystems_setaudiotimecodeinput_livesystem',
-					default: 0,
-					choices: self.CHOICES_LIVESYSTEMNAME
-				},
-				{
-					type: 'textinput',
-					label: 'Channel',
-					id: 'livesystems_setaudiotimecodeinput_channel',
-					default: '1',
-				},
-				{
-					type: 'checkbox',
-					label: 'State',
-					id: 'livesystems_setaudiotimecodeinput_state',
-					default: true,
-				}
-			],
-			callback: async (event) => {
-				let opt = event.options;
-
-				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioTimecodeInput',
-					{'handle':parseInt(opt.livesystems_setaudiotimecodeinput_livesystem),
-						'channel':parseInt(opt.livesystems_setaudiotimecodeinput_channel),
-						'state':opt.livesystems_setaudiotimecodeinput_state});
 			}
 		}
 

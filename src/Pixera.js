@@ -40,11 +40,12 @@ class Pixera {
         this.sendParams(99,'Pixera.Utility.setShowContextInReplies',{'doShow':true});
         self.initFeedbacks()
         this.initVariables();
-        this.initTimelines();
-        this.initScreens();
+        this.initLiveSystems();
+        this.initOutputs();
         this.initStudioCameras();
         this.initProjectors();
-        this.initLiveSystems();
+        this.initTimelines();
+        this.initScreens();
         if(self.config.polling)
 				{
           //self.log('debug',config.polling_rate);
@@ -148,51 +149,56 @@ class Pixera {
 		let self = this.instance;
 		this.pool();
 	}
+  initLiveSystems() {
+    let self = this.instance;
+    this.send(15,'Pixera.LiveSystems.getLiveSystems');
+  }
+  initOutputs() {
+    let self = this.instance;
+    this.send(21,'Pixera.LiveSystems.getLiveSystems');
+  }
+  initStudioCameras(){
+    let self = this.instance;
+
+		this.send(17,'Pixera.Screens.getStudioCameras');
+  }
+  initProjectors(){
+		let self = this.instance;
+		this.send(19,'Pixera.Projectors.getProjectors');
+    this.send(20,'Pixera.Projectors.getProjectorNames');
+  }
   initTimelines(){
 		let self = this.instance;
 		this.send(11,'Pixera.Timelines.getTimelines');
 	};
-  initRemoteSystemIps() {
-    let self = this.instance;
-    this.send(6,'Pixera.Session.getRemoteSystemIps')
-  };
-  initLiveSystems() {
-    let self = this.instance;
-    this.send(4,'Pixera.LiveSystems.getLiveSystems')
-  };
   initVariables(){
 		let self = this.instance;
 
-		self.CHOICES_TIMELINENAME = [{label: '',id:0}];
-		self.CHOICES_TIMELINEHANDLE = [];
-    self.CHOICES_TIMELINEFEEDBACK = [];
-		self.CHOICES_SCREENNAME = [{label: '',id:0}];
-		self.CHOICES_SCREENHANDLE = [];
+    self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
+    self.CHOICES_LIVESYSTEMHANDLE = '';
     self.CHOICES_PROJECTORNAME = [{label: '',id:0}];
 		self.CHOICES_PROJECTORHANDLE = [];
     self.CHOICES_STUDIOCAMERANAME = [{label: '',id:0}];
 		self.CHOICES_STUDIOCAMERAHANDLE = [];
     self.CHOICES_STUDIOCAMERACURRENTHANDLE = '';
+    self.CHOICES_OUTPUTNAME = [{label: '',id:0}]
+    self.CHOICES_OUTPUTHANDLE = [];
+		self.CHOICES_TIMELINENAME = [{label: '',id:0}];
+		self.CHOICES_TIMELINEHANDLE = [];
+    self.CHOICES_TIMELINEFEEDBACK = [];
+		self.CHOICES_SCREENNAME = [{label: '',id:0}];
+		self.CHOICES_SCREENHANDLE = [];
 		self.CHOICES_CUENAME = [];
 		self.CHOICES_CUEHANDLE = [];
 		self.CHOICES_FADELIST = [];
-    self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
-    self.CHOICES_LIVESYSTEMHANDLE = '';
+
+    self.INDEXHANDLE = 0;
+    self.INDEXNAME = 0;
   }
   initScreens(){
 		let self = this.instance;
 		this.send(13,'Pixera.Screens.getScreens');
     this.send(14,'Pixera.Screens.getScreenNames');
-  }
-  initStudioCameras(){
-    let self = this.instance;
-
-		this.send(15,'Pixera.Screens.getStudioCameras');
-  }
-  initProjectors(){
-		let self = this.instance;
-		this.send(17,'Pixera.Projectors.getProjectors');
-    this.send(18,'Pixera.Projectors.getProjectorNames');
   }
   processReceivedData(data){
 		let self = this.instance;
@@ -206,74 +212,13 @@ class Pixera {
         case 0:   //none
         break;
 
-        case 1:   //set version
+        case 1: //set version
         {
           let result = jsonData.result;
           self.VERSION = result;
         }
         break;
 
-        case 4:   //store live system handles
-        {
-          let result = jsonData.result;
-          if(result != null){
-            for(let i = 0; i < result.length; i++){
-              self.CHOICES_LIVESYSTEMHANDLE = result;
-              this.sendParams(5,'Pixera.LiveSystems.LiveSystem.getName',
-                {'handle':result[i]});
-            }
-          }
-          self.updateActions();
-        }
-        break;
-        case 5:   //store live system names
-        {
-          let result = jsonData.result;
-          if(result != null){
-            self.CHOICES_LIVESYSTEMNAME.push({label: result, id:self.CHOICES_LIVESYSTEMHANDLE[0]});
-
-            let temp = []
-            for (let i = 1; i < self.CHOICES_LIVESYSTEMHANDLE.length; i++) {
-              temp.push(self.CHOICES_LIVESYSTEMHANDLE[i]);
-            }
-            self.CHOICES_LIVESYSTEMHANDLE = temp;
-          }
-          self.updateActions();
-        }
-        break;
-        case 7: //toggle audio mute by getting current and sending the reverse
-        {
-          let result = jsonData.result;
-          if(result != null){
-            self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterMute',
-              {'handle':self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_LIVESYSTEM,
-                'channel':self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_CHANNEL,
-                'state':!result});
-          }
-        }
-        break;
-        case 8:   //set layer name from handle
-        {
-          let result = jsonData.result;
-          if(result != null){
-            this.sendParams(0,'Pixera.Timelines.Layer.setName',
-              {'handle':result, 'name':self.CREATE_LAYER_LAYERNAME});
-          }
-        }
-        break;
-        case 9: //create cue at current time
-        {
-          let result = jsonData.result;
-          if(result != null){
-            let handle = self.TIMELINE_CREATE_CUE_TIMELINEHANDLE
-            let name = self.TIMELINE_CREATE_CUE_CUENAME
-            let operation = self.TIMELINE_CREATE_CUE_CUEOPERATION
-
-            this.sendParams(0,'Pixera.Timelines.Timeline.createCue',
-              {'handle':handle, 'name':name, 'timeInFrames':result, 'operation':operation});
-          }
-        }
-        break;
 				case 11:  //get timeline list
 				{
 					let result = jsonData.result;
@@ -326,8 +271,32 @@ class Pixera {
           }
           self.updateActions();
         }
+        break;   
+        case 15: //Pixera.LiveSystems.getLiveSystems
+        {
+          let result = jsonData.result;
+          self.INDEXNAME = 0;
+          if(result != null){
+            self.CHOICES_LIVESYSTEMHANDLE = result;
+            for(let i = 0; i < result.length; i++){
+              this.sendParams(16,'Pixera.LiveSystems.LiveSystem.getName',
+                {'handle':result[i]});
+            }
+          }
+          self.updateActions();
+        }
         break;
-        case 15:  //Pixera.Screens.getStudioCameras
+        case 16: //Pixera.LiveSystems.LiveSystem.getName
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.CHOICES_LIVESYSTEMNAME.push({label: result, id:self.CHOICES_LIVESYSTEMHANDLE[self.INDEXNAME]});
+            self.INDEXNAME += 1;
+          }
+          self.updateActions();
+        }
+        break;
+        case 17: //Pixera.Screens.getStudioCameras
         {
           let result = jsonData.result;
           if(result != null){
@@ -337,13 +306,13 @@ class Pixera {
           for (let i = 0; i < self.CHOICES_STUDIOCAMERAHANDLE.length; i++) {
             self.CHOICES_STUDIOCAMERACURRENTHANDLE = self.CHOICES_STUDIOCAMERAHANDLE[i];
 
-            this.sendParams(16,'Pixera.Screens.StudioCamera.getName',
+            this.sendParams(18,'Pixera.Screens.StudioCamera.getName',
               {'handle':parseInt(self.CHOICES_STUDIOCAMERAHANDLE[i])});
           }
           self.updateActions();
         }
         break;
-        case 16:  //Pixera.Screens.StudioCamera.getName
+        case 18: //Pixera.Screens.StudioCamera.getName
         {
           let result = jsonData.result;
           if(result != null){
@@ -352,7 +321,7 @@ class Pixera {
           self.updateActions();
         }
         break;
-        case 17:  //Pixera.Projectors.getProjectors
+        case 19:  //Pixera.Projectors.getProjectors
         {
           let result = jsonData.result;
           if(result != null){
@@ -361,7 +330,7 @@ class Pixera {
           self.updateActions();
         }
         break;
-        case 18:  //Pixera.Projectors.getProjectorNames
+        case 20:  //Pixera.Projectors.getProjectorNames
         {
           let result = jsonData.result;
           if(result != null){
@@ -372,43 +341,134 @@ class Pixera {
           self.updateActions();
         }
         break;
-        case 19: //toggle tracking input pause by getting current and sending the reverse
+        case 21: //Pixera.LiveSystems.getLiveSystems
+        {
+          let result = jsonData.result;
+          self.INDEXHANDLE = 0;
+          if(result != null){
+            for(let i = 0; i < result.length; i++){
+              self.log('warn', 'Ran 1');
+              this.sendParams(22,'Pixera.LiveSystems.LiveSystem.getEnabledOutputs',
+                {'handle':result[i]});
+            }
+          }
+          self.updateActions();
+        }
+        break;
+        case 22: //Pixera.LiveSystems.LiveSystem.getEnabledOutputs
+        {
+          let result = jsonData.result;
+          self.INDEXNAME = 0;
+          if(result != null){
+            for(let i = 0; i < result.length; i++){
+              self.CHOICES_OUTPUTHANDLE.push(result[self.INDEXHANDLE]);
+              self.INDEXHANDLE += 1;
+              self.log('warn', 'Ran 2');
+              this.sendParams(23,'Pixera.LiveSystems.Output.getName',
+                {'handle':result[i]});
+            }
+          }
+          self.updateActions();
+        }
+        break;
+        case 23: //Pixera.LiveSystems.Output.getName
         {
           let result = jsonData.result;
           if(result != null){
-            self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTrackingInputPause',
+            self.log('warn', 'Ran 3');
+            self.CHOICES_OUTPUTNAME.push({label: result, id:self.CHOICES_OUTPUTHANDLE[self.INDEXNAME]});
+            self.INDEXNAME += 1;
+          }
+          self.updateActions();
+        }
+        break;
+        case 24: //Pixera.LiveSystems.LiveSystem.getAudioMasterMute
+        {
+          let result = jsonData.result;
+          if(result != null){
+            this.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterMute',
+              {'handle':self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_LIVESYSTEM,
+                'channel':self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_CHANNEL,
+                'state':!result});
+          }
+        }
+        break;
+        case 25: //Pixera.LiveSystems.Output.getActive
+        {
+          let result = jsonData.result;
+          if(result != null){
+            this.sendParams(0,'Pixera.LiveSystems.Output.setActive',
+              {'handle':self.OUTPUT_STATUS_OUTPUTNAME,
+                'active':!result});
+          }
+        }
+        break;
+        case 26: //Pixera.LiveSystems.Output.getIdentify
+        {
+          let result = jsonData.result;
+          if(result != null){
+            this.sendParams(0,'Pixera.LiveSystems.Output.setIdentify',
+              {'handle':self.OUTPUT_STATUS_OUTPUTNAME,
+                'state':!result});
+          }
+        }
+        break;
+        case 27: //Pixera.LiveSystems.Output.getIsOutputAggregate
+        {
+          let result = jsonData.result;
+          if(result != null){
+            this.sendParams(0,'Pixera.LiveSystems.Output.setIsOutputAggregate',
+              {'handle':self.OUTPUT_STATUS_OUTPUTNAME,
+                'state':!result});
+          }
+        }
+        break;
+        case 28: //Pixera.Screens.StudioCamera.getTrackingInputPause
+        {
+          let result = jsonData.result;
+          if(result != null){
+            this.sendParams(0,'Pixera.Screens.StudioCamera.setTrackingInputPause',
               {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
                 'pause':!result});
           }
         }
         break;
-        case 20: //toggle use position properties from tracking pause by getting current and sending the reverse
+        case 29: //Pixera.Screens.StudioCamera.getUsePositionPropertiesFromTracking
         {
           let result = jsonData.result;
           if(result != null){
-            self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setUsePositionPropertiesFromTracking',
+            this.sendParams(0,'Pixera.Screens.StudioCamera.setUsePositionPropertiesFromTracking',
               {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
                 'pause':!result});
           }
         }
         break;
-        case 21: //toggle use rotation properties from tracking pause by getting current and sending the reverse
+        case 30: //Pixera.Screens.StudioCamera.getUseRotationPropertiesFromTracking
         {
           let result = jsonData.result;
           if(result != null){
-            self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setUseRotationPropertiesFromTracking',
+            this.sendParams(0,'Pixera.Screens.StudioCamera.setUseRotationPropertiesFromTracking',
               {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
                 'pause':!result});
           }
         }
         break;
-        case 22: //toggle blackout by getting current and sending the reverse
+        case 31: //Pixera.Projectors.Projector.getBlackout
         {
           let result = jsonData.result;
           if(result != null){
-            self.pixera.sendParams(0,'Pixera.Projectors.Projector.setBlackout',
+            this.sendParams(0,'Pixera.Projectors.Projector.setBlackout',
               {'handle':self.PROJECTOR_BLACKOUT_PROJECTORNAME,
                 'isActive':!result});
+          }
+        }
+        break;
+        case 32: //Pixera.Timelines.Timeline.createLayer
+        {
+          let result = jsonData.result;
+          if(result != null){
+            this.sendParams(0,'Pixera.Timelines.Layer.setName',
+              {'handle':result, 'name':self.CREATE_LAYER_LAYERNAME});
           }
         }
         break;
@@ -427,7 +487,20 @@ class Pixera {
               }
             }
             let time = self.CHOICES_BLENDNAME_FRAMES/fps;
-            this.sendParams(19,'Pixera.Timelines.Cue.blendToThis',{'handle':result,'blendDurationInSeconds':time});
+            this.sendParams(0,'Pixera.Timelines.Cue.blendToThis',{'handle':result,'blendDurationInSeconds':time});
+          }
+        }
+        break;
+        case 26: //Pixera.Timelines.Timeline.getCurrentTime
+        {
+          let result = jsonData.result;
+          if(result != null){
+            let handle = self.TIMELINE_CREATE_CUE_TIMELINEHANDLE
+            let name = self.TIMELINE_CREATE_CUE_CUENAME
+            let operation = self.TIMELINE_CREATE_CUE_CUEOPERATION
+
+            this.sendParams(0,'Pixera.Timelines.Timeline.createCue',
+              {'handle':handle, 'name':name, 'timeInFrames':result, 'operation':operation});
           }
         }
         break;
@@ -458,7 +531,6 @@ class Pixera {
           }
         }
         break;
-
         case 44:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.getIsLayerMuted
         case 45:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.getIsAudioMuted
         {
