@@ -44,6 +44,7 @@ class Pixera {
         this.initOutputs();
         this.initStudioCameras();
         this.initProjectors();
+        this.initResources();
         this.initTimelines();
         this.initScreens();
         if(self.config.polling)
@@ -159,13 +160,16 @@ class Pixera {
   }
   initStudioCameras(){
     let self = this.instance;
-
 		this.send(17,'Pixera.Screens.getStudioCameras');
   }
   initProjectors(){
 		let self = this.instance;
 		this.send(19,'Pixera.Projectors.getProjectors');
     this.send(20,'Pixera.Projectors.getProjectorNames');
+  }
+  initResources(){
+    let self = this.instance;
+		this.send(35,'Pixera.Resources.getResources');
   }
   initTimelines(){
 		let self = this.instance;
@@ -176,13 +180,14 @@ class Pixera {
 
     self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
     self.CHOICES_LIVESYSTEMHANDLE = '';
-    self.CHOICES_PROJECTORNAME = [{label: '',id:0}];
-		self.CHOICES_PROJECTORHANDLE = [];
-    self.CHOICES_STUDIOCAMERANAME = [{label: '',id:0}];
-		self.CHOICES_STUDIOCAMERAHANDLE = [];
-    self.CHOICES_STUDIOCAMERACURRENTHANDLE = '';
     self.CHOICES_OUTPUTNAME = [{label: '',id:0}]
     self.CHOICES_OUTPUTHANDLE = [];
+    self.CHOICES_STUDIOCAMERANAME = [{label: '',id:0}];
+		self.CHOICES_STUDIOCAMERAHANDLE = [];
+    self.CHOICES_PROJECTORNAME = [{label: '',id:0}];
+		self.CHOICES_PROJECTORHANDLE = [];
+    self.CHOICES_RESOURCENAME = [{label: '',id:0}]
+    self.CHOICES_RESOURCEHANDLE = [];
 		self.CHOICES_TIMELINENAME = [{label: '',id:0}];
 		self.CHOICES_TIMELINEHANDLE = [];
     self.CHOICES_TIMELINEFEEDBACK = [];
@@ -192,8 +197,10 @@ class Pixera {
 		self.CHOICES_CUEHANDLE = [];
 		self.CHOICES_FADELIST = [];
 
-    self.INDEXHANDLE = 0;
-    self.INDEXNAME = 0;
+    self.INDEXNAME_LIVESYSTEM = 0;
+    self.INDEXNAME_STUDIOCAMERA = 0;
+    self.INDEXNAME_OUTPUT = 0;
+    self.INDEXNAME_RESOURCE = 0;
   }
   initScreens(){
 		let self = this.instance;
@@ -275,7 +282,7 @@ class Pixera {
         case 15: //Pixera.LiveSystems.getLiveSystems
         {
           let result = jsonData.result;
-          self.INDEXNAME = 0;
+          self.INDEXNAME_LIVESYSTEM = 0;
           if(result != null){
             self.CHOICES_LIVESYSTEMHANDLE = result;
             for(let i = 0; i < result.length; i++){
@@ -290,8 +297,8 @@ class Pixera {
         {
           let result = jsonData.result;
           if(result != null){
-            self.CHOICES_LIVESYSTEMNAME.push({label: result, id:self.CHOICES_LIVESYSTEMHANDLE[self.INDEXNAME]});
-            self.INDEXNAME += 1;
+            self.CHOICES_LIVESYSTEMNAME.push({label: result, id:self.CHOICES_LIVESYSTEMHANDLE[self.INDEXNAME_LIVESYSTEM]});
+            self.INDEXNAME_LIVESYSTEM += 1;
           }
           self.updateActions();
         }
@@ -299,15 +306,13 @@ class Pixera {
         case 17: //Pixera.Screens.getStudioCameras
         {
           let result = jsonData.result;
+          self.INDEXNAME_STUDIOCAMERA = 0;
           if(result != null){
             self.CHOICES_STUDIOCAMERAHANDLE = result;
-          }
-    
-          for (let i = 0; i < self.CHOICES_STUDIOCAMERAHANDLE.length; i++) {
-            self.CHOICES_STUDIOCAMERACURRENTHANDLE = self.CHOICES_STUDIOCAMERAHANDLE[i];
-
-            this.sendParams(18,'Pixera.Screens.StudioCamera.getName',
-              {'handle':parseInt(self.CHOICES_STUDIOCAMERAHANDLE[i])});
+            for(let i = 0; i < result.length; i++){
+              this.sendParams(18,'Pixera.Screens.StudioCamera.getName',
+                {'handle':result[i]});
+            }
           }
           self.updateActions();
         }
@@ -316,7 +321,8 @@ class Pixera {
         {
           let result = jsonData.result;
           if(result != null){
-            self.CHOICES_STUDIOCAMERANAME.push({label: result, id:self.CHOICES_STUDIOCAMERACURRENTHANDLE});
+            self.CHOICES_STUDIOCAMERANAME.push({label: result, id:self.CHOICES_STUDIOCAMERAHANDLE[self.INDEXNAME_STUDIOCAMERA]});
+            self.INDEXNAME_STUDIOCAMERA += 1;
           }
           self.updateActions();
         }
@@ -344,10 +350,8 @@ class Pixera {
         case 21: //Pixera.LiveSystems.getLiveSystems
         {
           let result = jsonData.result;
-          self.INDEXHANDLE = 0;
           if(result != null){
             for(let i = 0; i < result.length; i++){
-              self.log('warn', 'Ran 1');
               this.sendParams(22,'Pixera.LiveSystems.LiveSystem.getEnabledOutputs',
                 {'handle':result[i]});
             }
@@ -358,12 +362,10 @@ class Pixera {
         case 22: //Pixera.LiveSystems.LiveSystem.getEnabledOutputs
         {
           let result = jsonData.result;
-          self.INDEXNAME = 0;
+          self.INDEXNAME_OUTPUT = 0;
           if(result != null){
             for(let i = 0; i < result.length; i++){
-              self.CHOICES_OUTPUTHANDLE.push(result[self.INDEXHANDLE]);
-              self.INDEXHANDLE += 1;
-              self.log('warn', 'Ran 2');
+              self.CHOICES_OUTPUTHANDLE.push(result[i]);
               this.sendParams(23,'Pixera.LiveSystems.Output.getName',
                 {'handle':result[i]});
             }
@@ -375,9 +377,8 @@ class Pixera {
         {
           let result = jsonData.result;
           if(result != null){
-            self.log('warn', 'Ran 3');
-            self.CHOICES_OUTPUTNAME.push({label: result, id:self.CHOICES_OUTPUTHANDLE[self.INDEXNAME]});
-            self.INDEXNAME += 1;
+            self.CHOICES_OUTPUTNAME.push({label: result, id:self.CHOICES_OUTPUTHANDLE[self.INDEXNAME_OUTPUT]});
+            self.INDEXNAME_OUTPUT += 1;
           }
           self.updateActions();
         }
@@ -387,8 +388,8 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterMute',
-              {'handle':self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_LIVESYSTEM,
-                'channel':self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_CHANNEL,
+              {'handle':self.LIVESYSTEM_SETAUDIOMASTER_MUTE_LIVESYSTEM,
+                'channel':self.LIVESYSTEM_SETAUDIOMASTER_MUTE_CHANNEL,
                 'state':!result});
           }
         }
@@ -398,7 +399,7 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.LiveSystems.Output.setActive',
-              {'handle':self.OUTPUT_STATUS_OUTPUTNAME,
+              {'handle':self.OUTPUT_STATUS_OUTPUT,
                 'active':!result});
           }
         }
@@ -408,7 +409,7 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.LiveSystems.Output.setIdentify',
-              {'handle':self.OUTPUT_STATUS_OUTPUTNAME,
+              {'handle':self.OUTPUT_STATUS_OUTPUT,
                 'state':!result});
           }
         }
@@ -418,7 +419,7 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.LiveSystems.Output.setIsOutputAggregate',
-              {'handle':self.OUTPUT_STATUS_OUTPUTNAME,
+              {'handle':self.OUTPUT_STATUS_OUTPUT,
                 'state':!result});
           }
         }
@@ -428,7 +429,7 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.Screens.StudioCamera.setTrackingInputPause',
-              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
+              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERA,
                 'pause':!result});
           }
         }
@@ -438,7 +439,7 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.Screens.StudioCamera.setUsePositionPropertiesFromTracking',
-              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
+              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERA,
                 'pause':!result});
           }
         }
@@ -448,7 +449,7 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.Screens.StudioCamera.setUseRotationPropertiesFromTracking',
-              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME,
+              {'handle':self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERA,
                 'pause':!result});
           }
         }
@@ -458,7 +459,7 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.Projectors.Projector.setBlackout',
-              {'handle':self.PROJECTOR_BLACKOUT_PROJECTORNAME,
+              {'handle':self.PROJECTOR_BLACKOUT_PROJECTOR,
                 'isActive':!result});
           }
         }
@@ -468,7 +469,7 @@ class Pixera {
           let result = jsonData.result;
           if(result != null){
             this.sendParams(0,'Pixera.Timelines.Layer.setName',
-              {'handle':result, 'name':self.CREATE_LAYER_LAYERNAME});
+              {'handle':result, 'name':self.CREATE_LAYER_NAME});
           }
         }
         break;
@@ -491,16 +492,51 @@ class Pixera {
           }
         }
         break;
-        case 26: //Pixera.Timelines.Timeline.getCurrentTime
+        case 34: //Pixera.Timelines.Timeline.getCurrentTime
         {
           let result = jsonData.result;
           if(result != null){
             let handle = self.TIMELINE_CREATE_CUE_TIMELINEHANDLE
-            let name = self.TIMELINE_CREATE_CUE_CUENAME
+            let name = self.TIMELINE_CREATE_CUE_NAME
             let operation = self.TIMELINE_CREATE_CUE_CUEOPERATION
 
             this.sendParams(0,'Pixera.Timelines.Timeline.createCue',
               {'handle':handle, 'name':name, 'timeInFrames':result, 'operation':operation});
+          }
+        }
+        break;
+        case 35: //Pixera.Resources.getResources
+        {
+          let result = jsonData.result;
+          self.INDEXNAME_RESOURCE = 0;
+          if(result != null){
+            for(let i = 0; i < result.length; i++){
+              self.CHOICES_RESOURCEHANDLE.push(result[i]);
+              this.sendParams(36,'Pixera.Resources.Resource.getName',
+                {'handle':result[i]});
+            }
+          }
+          self.updateActions();
+        }
+        break;
+        case 36: //Pixera.Resources.Resource.getName()
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.CHOICES_RESOURCENAME.push({label: result, id:self.CHOICES_RESOURCEHANDLE[self.INDEXNAME_RESOURCE]});
+            self.INDEXNAME_RESOURCE += 1;
+          }
+          self.updateActions();
+        }
+        break;
+        case 37: //Pixera.Resources.Resource.getUseGradient
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.log('warn', 'Result: ' + result);
+            this.sendParams(0,'Pixera.Resources.Resource.setUseGradient',
+              {'handle':self.RESOURCE_SETTINGS_COLOR_RESOURCE,
+                'useGradient':!result});
           }
         }
         break;
@@ -531,36 +567,42 @@ class Pixera {
           }
         }
         break;
-        case 44:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.getIsLayerMuted
-        case 45:  //Pixera.Timelines.Layer.getInst -> Pixera.Timelines.Layer.getIsAudioMuted
+        case 44:  //Pixera.Timelines.Layer.getInst
+        case 45:  //Pixera.Timelines.Layer.getInst
         {
-          self.MUTE_TOGGLE = jsonData.result;
+          self.MUTE_TOGGLE_LAYER = jsonData.result;
           if(jsonData.id == 45){
-            this.sendParams(47, 'Pixera.Timelines.Layer.getIsAudioMuted', {'handle':self.MUTE_TOGGLE});
+            this.sendParams(47, 'Pixera.Timelines.Layer.getIsAudioMuted',
+              {'handle':self.MUTE_TOGGLE_LAYER});
           }
           else {
-            this.sendParams(46, 'Pixera.Timelines.Layer.getIsLayerMuted', {'handle':self.MUTE_TOGGLE});
+            this.sendParams(46, 'Pixera.Timelines.Layer.getIsLayerMuted', 
+              {'handle':self.MUTE_TOGGLE_LAYER});
           }
         }
         break;
-        case 46:  //Pixera.Timelines.Layer.muteLayer or Pixera.Timelines.Layer.unMuteLayer
-        case 47:  //Pixera.Timelines.Layer.muteAudio or Pixera.Timelines.Layer.unMuteAudio
+        case 46:  //Pixera.Timelines.Layer.getIsLayerMuted
+        case 47:  //Pixera.Timelines.Layer.getIsAudioMuted
         {
           let result = jsonData.result;
           if(result == true) {
             if(jsonData.id == 46) {
-              this.sendParams(0, 'Pixera.Timelines.Layer.unMuteLayer', {'handle':self.MUTE_TOGGLE});
+              this.sendParams(0, 'Pixera.Timelines.Layer.unMuteLayer',
+                {'handle':self.MUTE_TOGGLE_LAYER});
             }
             else {
-              this.sendParams(0, 'Pixera.Timelines.Layer.unMuteAudio', {'handle':self.MUTE_TOGGLE});
+              this.sendParams(0, 'Pixera.Timelines.Layer.unMuteAudio',
+                {'handle':self.MUTE_TOGGLE_LAYER});
             }
           }
           else {
             if(jsonData.id == 46) {
-              this.sendParams(0, 'Pixera.Timelines.Layer.muteLayer', {'handle':self.MUTE_TOGGLE});
+              this.sendParams(0, 'Pixera.Timelines.Layer.muteLayer',
+                {'handle':self.MUTE_TOGGLE_LAYER});
             }
             else {
-              this.sendParams(0, 'Pixera.Timelines.Layer.muteAudio', {'handle':self.MUTE_TOGGLE});
+              this.sendParams(0, 'Pixera.Timelines.Layer.muteAudio',
+                {'handle':self.MUTE_TOGGLE_LAYER});
             }
           }
         }

@@ -68,8 +68,8 @@ module.exports  = {
 				},
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_transport_name',
+					label: 'Timeline',
+					id: 'timeline_transport_timeline',
 					isVisible: (options) => options.timeline_transport_type == 1,
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
@@ -77,7 +77,7 @@ module.exports  = {
 				{
 					type: 'textinput',
 					label: 'Timeline Names',
-					id: 'timeline_transport_names',
+					id: 'timeline_transport_timelines',
 					isVisible: (options) => options.timeline_transport_type == 2,
 					default: 'Timeline 1,Timeline 2,Timeline 3',
 				}
@@ -89,10 +89,10 @@ module.exports  = {
 					switch (opt.timeline_transport_type) {
 						case 1:
 							self.pixera.sendParams(0,'Pixera.Timelines.Timeline.toggleTransport',
-								{'handle':parseInt(opt.timeline_transport_name)});
+								{'handle':parseInt(opt.timeline_transport_timeline)});
 							break;
 						case 2:
-							let timelines = opt.timeline_transport_names.split(',');
+							let timelines = opt.timeline_transport_timelines.split(',');
 							for (let i = 0; i < timelines.length; i++) {
 								for(var k = 0; k < self.CHOICES_TIMELINEFEEDBACK.length; k++){
 									if(timelines[i] == self.CHOICES_TIMELINEFEEDBACK[k]['name']){
@@ -116,10 +116,10 @@ module.exports  = {
 					switch (opt.timeline_transport_type) {
 						case 1:
 							self.pixera.sendParams(0,'Pixera.Timelines.Timeline.setTransportMode',
-								{'handle':parseInt(opt.timeline_transport_name), 'mode':parseInt(opt.timeline_transport_mode)});
+								{'handle':parseInt(opt.timeline_transport_timeline), 'mode':parseInt(opt.timeline_transport_mode)});
 							break;
 						case 2:
-							let timelines = opt.timeline_transport_names.split(',');
+							let timelines = opt.timeline_transport_timelines.split(',');
 							for (let i = 0; i < timelines.length; i++) {
 								for(var k = 0; k < self.CHOICES_TIMELINEFEEDBACK.length; k++){
 									if(timelines[i] == self.CHOICES_TIMELINEFEEDBACK[k]['name']){
@@ -385,35 +385,35 @@ module.exports  = {
 		}
 
 		//Created 10/27/2023 by Cody Luketic
-		actions.livesystems_engine = {
+		actions.livesystem_engine = {
 			name: 'Live Systems Engine',
 			options: [
 				{
 					type: 'checkbox',
 					label: 'All Live Systems',
-					id: 'livesystems_engine_all',
+					id: 'livesystem_engine_all',
 					default: false,
 				},
 				{
 					type: 'dropdown',
 					label: 'Live System',
-					id: 'livesystems_engine_livesystem',
+					id: 'livesystem_engine_livesystem',
 					default: 0,
-					isVisible: (options) => options.livesystems_engine_all == 0,
+					isVisible: (options) => options.livesystem_engine_all == 0,
 					choices: self.CHOICES_LIVESYSTEMNAME
 				},
 				{
 					type: 'checkbox',
 					label: 'Exclude Local',
-					id: 'livesystems_engine_local',
-					isVisible: (options) => options.livesystems_engine_all == 1,
+					id: 'livesystem_engine_local',
+					isVisible: (options) => options.livesystem_engine_all == 1,
 					default: true,
 				},
 				{
 					type: 'dropdown',
 					label: 'Action',
-					id: 'livesystems_engine_action',
-					default: 0,
+					id: 'livesystem_engine_action',
+					default: 1,
 					choices:[
 						{label: 'Start', id: 1},
 						{label: 'Close', id: 2},
@@ -425,12 +425,12 @@ module.exports  = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				let id = opt.livesystems_engine_action;
+				let id = opt.livesystem_engine_action;
 
-				if(opt.livesystems_engine_all) {
+				if(opt.livesystem_engine_all) {
 					for (let i = 0; i < self.CHOICES_LIVESYSTEMNAME.length; i++) {
 						let handle = self.CHOICES_LIVESYSTEMNAME[i].id;
-						if(!opt.livesystems_engine_local) {
+						if(!opt.livesystem_engine_local) {
 							switch (id) {
 								case 1:
 									self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
@@ -488,23 +488,23 @@ module.exports  = {
 					switch (id) {
 						case 1:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.startEngine',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+								{'handle':parseInt(opt.livesystem_engine_livesystem)});
 							break;
 						case 2:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.closeEngine',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+								{'handle':parseInt(opt.livesystem_engine_livesystem)});
 							break;
 						case 3:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.restartEngine',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+								{'handle':parseInt(opt.livesystem_engine_livesystem)});
 							break;
 						case 4:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.resetEngine',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+								{'handle':parseInt(opt.livesystem_engine_livesystem)});
 							break;
 						case 5:
 							self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.wakeUp',
-								{'handle':parseInt(opt.livesystems_engine_livesystem)});
+								{'handle':parseInt(opt.livesystem_engine_livesystem)});
 							break;
 						default:
 							break;
@@ -514,20 +514,20 @@ module.exports  = {
 		}
 
 		//Created 10/30/2023 by Cody Luketic
-		actions.livesystems_exportMappings = {
+		actions.livesystem_exportMappings = {
 			name: 'Live Systems Export Mappings',
 			options: [
 				{
 					type: 'dropdown',
 					label: 'Live System',
-					id: 'livesystems_exportMappings_livesystem',
+					id: 'livesystem_exportMappings_livesystem',
 					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME
 				},
 				{
 					type: 'textinput',
 					label: 'Export Path',
-					id: 'livesystems_exportMappings_exportpath',
+					id: 'livesystem_exportMappings_exportpath',
 					default: 'C:\\Dump',
 				}
 			],
@@ -535,121 +535,121 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.exportMappings',
-					{'handle':parseInt(opt.livesystems_exportMappings_livesystem),'path':opt.livesystems_exportMappings_exportpath});
+					{'handle':parseInt(opt.livesystem_exportMappings_livesystem),'path':opt.livesystem_exportMappings_exportpath});
 			}
 		}
 
 		//Updated 10/31/2023 by Cody Luketic
-		actions.livesystems_setaudiomaster_volume = {
+		actions.livesystem_setaudiomaster_volume = {
 			name: 'Live Systems Set Audio Master Volume',
 			options: [
 				{
 					type: 'dropdown',
 					label: 'Live System',
-					id: 'livesystems_setaudiomaster_volume_livesystem',
+					id: 'livesystem_setaudiomaster_volume_livesystem',
 					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME
 				},
 				{
 					type: 'textinput',
 					label: 'Channels',
-					id: 'livesystems_setaudiomaster_volume_channels',
+					id: 'livesystem_setaudiomaster_volume_channels',
 					default: '1,2',
 				},
 				{
 					type: 'textinput',
 					label: 'Volume',
-					id: 'livesystems_setaudiomaster_volume_value',
-					default: 1.0,
+					id: 'livesystem_setaudiomaster_volume_value',
+					default: '1.0',
 					regex: self.REGEX_FLOAT
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				let channels = opt.livesystems_setaudiomaster_volume_channels.split(',')
+				let channels = opt.livesystem_setaudiomaster_volume_channels.split(',')
 				for (let i = 0; i < channels.length; i++) {
 					self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterVolume',
-					{'handle':parseInt(opt.livesystems_setaudiomaster_volume_livesystem),
+					{'handle':parseInt(opt.livesystem_setaudiomaster_volume_livesystem),
 						'channel':parseInt(channels[i]),
-						'volume':parseFloat(opt.livesystems_setaudiomaster_volume_value)});
+						'volume':parseFloat(opt.livesystem_setaudiomaster_volume_value)});
 					
 				}
 			}
 		}
 
 		//Updated 10/31/2023 by Cody Luketic
-		actions.livesystems_setaudiomaster_mute = {
+		actions.livesystem_setaudiomaster_mute = {
 			name: 'Live Systems Set Audio Master Mute',
 			options: [
 				{
 					type: 'dropdown',
 					label: 'Live System',
-					id: 'livesystems_setaudiomaster_mute_livesystem',
+					id: 'livesystem_setaudiomaster_mute_livesystem',
 					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME
 				},
 				{
 					type: 'textinput',
 					label: 'Channel',
-					id: 'livesystems_setaudiomaster_mute_channel',
+					id: 'livesystem_setaudiomaster_mute_channel',
 					default: '1',
 				},
 				{
 					type: 'checkbox',
 					label: 'Make Toggle',
-					id: 'livesystems_setaudiomaster_mute_toggle',
+					id: 'livesystem_setaudiomaster_mute_toggle',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Mute',
-					id: 'livesystems_setaudiomaster_mute_state',
-					isVisible: (options) => options.livesystems_setaudiomaster_mute_toggle == 0,
+					id: 'livesystem_setaudiomaster_mute_state',
+					isVisible: (options) => options.livesystem_setaudiomaster_mute_toggle == 0,
 					default: false,
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				if(opt.livesystems_setaudiomaster_mute_toggle) {
-					self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_LIVESYSTEM = parseInt(opt.livesystems_setaudiomaster_mute_livesystem);
-					self.LIVESYSTEMS_SETAUDIOMASTER_MUTE_CHANNEL = parseInt(opt.livesystems_setaudiomaster_mute_channel);
+				if(opt.livesystem_setaudiomaster_mute_toggle) {
+					self.LIVESYSTEM_SETAUDIOMASTER_MUTE_LIVESYSTEM = parseInt(opt.livesystem_setaudiomaster_mute_livesystem);
+					self.LIVESYSTEM_SETAUDIOMASTER_MUTE_CHANNEL = parseInt(opt.livesystem_setaudiomaster_mute_channel);
 
 					self.pixera.sendParams(24,'Pixera.LiveSystems.LiveSystem.getAudioMasterMute',
-						{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
-							'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel)});
+						{'handle':parseInt(opt.livesystem_setaudiomaster_mute_livesystem),
+							'channel':parseInt(opt.livesystem_setaudiomaster_mute_channel)});
 				}
 				else {
 					self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioMasterMute',
-						{'handle':parseInt(opt.livesystems_setaudiomaster_mute_livesystem),
-							'channel':parseInt(opt.livesystems_setaudiomaster_mute_channel),
-							'state':opt.livesystems_setaudiomaster_mute_state});
+						{'handle':parseInt(opt.livesystem_setaudiomaster_mute_livesystem),
+							'channel':parseInt(opt.livesystem_setaudiomaster_mute_channel),
+							'state':opt.livesystem_setaudiomaster_mute_state});
 				}
 			}
 		}
 		
 		//Updated 10/31/2023 by Cody Luketic
-		actions.livesystems_setaudiotimecodeinput = {
+		actions.livesystem_setaudiotimecodeinput = {
 			name: 'Live Systems Set Audio Timecode Input',
 			options: [
 				{
 					type: 'dropdown',
 					label: 'Live System',
-					id: 'livesystems_setaudiotimecodeinput_livesystem',
+					id: 'livesystem_setaudiotimecodeinput_livesystem',
 					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME
 				},
 				{
 					type: 'textinput',
 					label: 'Channel',
-					id: 'livesystems_setaudiotimecodeinput_channel',
+					id: 'livesystem_setaudiotimecodeinput_channel',
 					default: '1',
 				},
 				{
 					type: 'checkbox',
 					label: 'State',
-					id: 'livesystems_setaudiotimecodeinput_state',
+					id: 'livesystem_setaudiotimecodeinput_state',
 					default: true,
 				}
 			],
@@ -657,9 +657,9 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.LiveSystems.LiveSystem.setAudioTimecodeInput',
-					{'handle':parseInt(opt.livesystems_setaudiotimecodeinput_livesystem),
-						'channel':parseInt(opt.livesystems_setaudiotimecodeinput_channel),
-						'state':opt.livesystems_setaudiotimecodeinput_state});
+					{'handle':parseInt(opt.livesystem_setaudiotimecodeinput_livesystem),
+						'channel':parseInt(opt.livesystem_setaudiotimecodeinput_channel),
+						'state':opt.livesystem_setaudiotimecodeinput_state});
 			}
 		}
 
@@ -670,7 +670,7 @@ module.exports  = {
 				{
 					type: 'dropdown',
 					label: 'Output Name',
-					id: 'output_status_outputname',
+					id: 'output_status_output',
 					default: 0,
 					choices: self.CHOICES_OUTPUTNAME
 				},
@@ -740,41 +740,41 @@ module.exports  = {
 				let opt = event.options;
 				
 				if(opt.output_status_active_toggle) {
-					self.OUTPUT_STATUS_OUTPUTNAME = opt.output_status_outputname;
+					self.OUTPUT_STATUS_OUTPUT = opt.output_status_output;
 					self.pixera.sendParams(25,'Pixera.LiveSystems.Output.getActive',
-						{'handle':parseInt(opt.output_status_outputname)});
+						{'handle':parseInt(opt.output_status_output)});
 				}
 				else {
 					self.pixera.sendParams(0,'Pixera.LiveSystems.Output.setActive',
-						{'handle':parseInt(opt.output_status_outputname),
+						{'handle':parseInt(opt.output_status_output),
 							'active':opt.output_status_active});
 				}
 
 				if(opt.output_status_identify_toggle) {
-					self.OUTPUT_STATUS_OUTPUTNAME = opt.output_status_outputname;
+					self.OUTPUT_STATUS_OUTPUT = opt.output_status_output;
 					self.pixera.sendParams(26,'Pixera.LiveSystems.Output.getIdentify',
-						{'handle':parseInt(opt.output_status_outputname)});
+						{'handle':parseInt(opt.output_status_output)});
 				}
 				else {
 					self.pixera.sendParams(0,'Pixera.LiveSystems.Output.setIdentify',
-						{'handle':parseInt(opt.output_status_outputname),
+						{'handle':parseInt(opt.output_status_output),
 							'state':opt.output_status_identify});
 				}
 
 				if(opt.output_status_isoutputaggregate_toggle) {
-					self.OUTPUT_STATUS_OUTPUTNAME = opt.output_status_outputname;
+					self.OUTPUT_STATUS_OUTPUT = opt.output_status_output;
 					self.pixera.sendParams(27,'Pixera.LiveSystems.Output.getIsOutputAggregate',
-						{'handle':parseInt(opt.output_status_outputname)});
+						{'handle':parseInt(opt.output_status_output)});
 				}
 				else {
 					self.pixera.sendParams(0,'Pixera.LiveSystems.Output.setIsOutputAggregate',
-						{'handle':parseInt(opt.output_status_outputname),
+						{'handle':parseInt(opt.output_status_output),
 							'state':opt.output_status_isoutputaggregate});
 				}
 
 				if(opt.output_status_aggregateddimensions) {
 					self.pixera.sendParams(0,'Pixera.LiveSystems.Output.setAggregateDims',
-						{'handle':parseInt(opt.output_status_outputname),
+						{'handle':parseInt(opt.output_status_output),
 							'horizontalCount':parseInt(opt.output_status_aggregatedimensions_horizontalcount),
 							'verticalCount':parseInt(opt.output_status_aggregatedimensions_verticalcount)});
 				}
@@ -798,24 +798,24 @@ module.exports  = {
 				},
 				{
 					type: 'dropdown',
-					label: 'Screen Name',
-					id: 'output_assignment_screenname',
+					label: 'Screen',
+					id: 'output_assignment_screen',
 					isVisible: (options) => options.output_assignment_type == 1,
 					default: 0,
 					choices: self.CHOICES_SCREENNAME
 				},*/
 				{
 					type: 'dropdown',
-					label: 'Projector Name',
-					id: 'output_assignment_projectorname',
+					label: 'Projector',
+					id: 'output_assignment_projector',
 					/*isVisible: (options) => options.output_assignment_type == 2,*/
 					default: 0,
 					choices: self.CHOICES_PROJECTORNAME
 				},
 				{
 					type: 'dropdown',
-					label: 'Output Name',
-					id: 'output_assignment_outputname',
+					label: 'Output',
+					id: 'output_assignment_output',
 					default: 0,
 					choices: self.CHOICES_OUTPUTNAME
 				}
@@ -826,19 +826,540 @@ module.exports  = {
 				/*
 				if(opt.output_assignment_type == 1) {
 					self.pixera.sendParams(0,'Pixera.Screens.Screen.setOutput',
-						{'handle':parseInt(opt.output_assignment_outputname)});
+						{'handle':parseInt(opt.output_assignment_output)});
 				}
 				else {
 					self.pixera.sendParams(0,'Pixera.Projectors.Projector.setOutput',
-						{'handle':parseInt(opt.output_assignment_outputname)});
+						{'handle':parseInt(opt.output_assignment_output)});
 				}
 				*/
 
-				self.log('warn', 'Projector Handle: ' + opt.output_assignment_projectorname);
-				self.log('warn', 'Output Handle: ' + opt.output_assignment_outputname);
 				self.pixera.sendParams(0,'Pixera.Projectors.Projector.setOutput',
-					{'handle':parseInt(opt.output_assignment_projectorname),
-						'outputHandle':parseInt(opt.output_assignment_outputname)});
+					{'handle':parseInt(opt.output_assignment_projector),
+						'outputHandle':parseInt(opt.output_assignment_output)});
+			}
+		}
+
+		//Created 11/8/2023 by Cody Luketic
+		actions.resource_system = {
+			name: 'Resource System',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Resource',
+					id: 'resource_system_resource',
+					default: 0,
+					choices: self.CHOICES_RESOURCENAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'resource_system_action',
+					default: 6,
+					choices:[
+						{label: 'Remove This', id: 1},
+						{label: 'Remove This Including Assets', id: 2},
+						{label: 'Delete Files on Systems', id: 3},
+						{label: 'Delete Asset From Live System', id: 4},
+						{label: 'Replace', id: 5},
+						{label: 'Refresh', id: 6},
+						/*{label: 'Move to Transcoding Folder', id: 7},*/
+						{label: 'Reset Distribution Targets', id: 8},
+						{label: 'Change Distribution Targets', id: 9},
+						{label: 'Distribute', id: 10},
+					]
+				},
+				{
+					type: 'dropdown',
+					label: 'Livesystem',
+					id: 'resource_system_livesystem',
+					isVisible: (options) => options.resource_system_action == 4
+						|| options.resource_system_action == 9,
+					default: 0,
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'checkbox',
+					label: 'Should Distribute',
+					id: 'resource_system_shoulddistribute',
+					isVisible: (options) => options.resource_system_action == 9,
+					default: false,
+				},
+				{
+					type: 'textinput',
+					label: 'File Path',
+					id: 'resource_system_filepath',
+					isVisible: (options) => options.resource_system_action == 5,
+					default: 'C:\\Dump',
+				}/*,
+				{
+					type: 'textinput',
+					label: 'Folder Path',
+					id: 'resource_system_folderpath',
+					isVisible: (options) => options.resource_system_action == 7,
+					default: 'C:\\Dump',
+				},*/
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.resource_system_action;
+
+				switch (id) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.removeThis',
+							{'handle':parseInt(opt.resource_system_resource)});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.removeThisIncludingAssets',
+							{'handle':parseInt(opt.resource_system_resource)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.deleteFilesOnSystems',
+							{'handle':parseInt(opt.resource_system_resource)});
+						break;
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.deleteAssetFromLiveSystem',
+							{'handle':parseInt(opt.resource_system_resource),
+								'apEntityLiveSystemHandle':parseInt(opt.resource_system_livesystem)});
+						break;
+					case 5:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.replace',
+							{'handle':parseInt(opt.resource_system_resource),
+								'path':opt.resource_system_filepath});
+						break;
+					case 6:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.refresh',
+							{'handle':parseInt(opt.resource_system_resource),
+								'text':''});
+						break;
+					/*case 7:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.moveToTranscodingFolder',
+							{'handle':parseInt(opt.resource_system_resource),
+								'folderPath':opt.resource.system.folderpath});
+						break;*/
+					case 8:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.resetDistributionTargets',
+							{'handle':parseInt(opt.resource_system_resource)});
+						break;
+					case 9:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.changeDistributionTarget',
+						{'handle':parseInt(opt.resource_system_resource),
+							'apEntityLiveSystemHandle':opt.resource.system.livesystem,
+							'shouldDistribute':opt.resource.system.shoulddistribute});
+					break;
+					case 10:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.distribute',
+							{'handle':parseInt(opt.resource_system_resource)});
+					break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/8/2023 by Cody Luketic
+		actions.resource_settings_general = {
+			name: 'Resource Settings General',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Resource',
+					id: 'resource_settings_general_resource',
+					default: 0,
+					choices: self.CHOICES_RESOURCENAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'resource_settings_general_action',
+					default: 1,
+					choices:[
+						{label: 'Set Name', id: 1},
+						{label: 'Set Current Version', id: 2},
+						{label: 'Set DMX Id', id: 3},
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Name',
+					id: 'resource_settings_general_name',
+					isVisible: (options) => options.resource_settings_general_action == 1,
+					default: 'Resource 1',
+				},
+				{
+					type: 'textinput',
+					label: 'Version',
+					id: 'resource_settings_general_version',
+					isVisible: (options) => options.resource_settings_general_action == 2,
+					default: '1',
+				},
+				{
+					type: 'textinput',
+					label: 'Dmx Id',
+					id: 'resource_settings_general_dmxid',
+					isVisible: (options) => options.resource_settings_general_action == 3,
+					default: '1',
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.resource_settings_general_action;
+
+				switch (id) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setName',
+							{'handle':parseInt(opt.resource_settings_general_resource),
+								'name':opt.resource_settings_general_name});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setCurrentVersion',
+							{'handle':parseInt(opt.resource_settings_general_resource),
+								'version':opt.resource_settings_general_version});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setDmxId',
+							{'handle':parseInt(opt.resource_settings_general_resource),
+								'id':parseInt(opt.resource_settings_general_dmxid)});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/8/2023 by Cody Luketic
+		actions.resource_settings_textweb = {
+			name: 'Resource Settings Text And Web',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Resource',
+					id: 'resource_settings_textweb_resource',
+					default: 0,
+					choices: self.CHOICES_RESOURCENAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'resource_settings_textweb_action',
+					default: 1,
+					choices:[
+						{label: 'Set Text', id: 1},
+						{label: 'Set Font with Name', id: 2},
+						{label: 'Set Horizontal Alignment', id: 3},
+						{label: 'Set Vertical Alignment', id: 4},
+						{label: 'Set Line Height', id: 5},
+						{label: 'WEB: Set Url', id: 6},
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Text',
+					id: 'resource_settings_textweb_text',
+					isVisible: (options) => options.resource_settings_textweb_action == 1,
+					default: 'This is a Text Resource',
+				},
+				{
+					type: 'textinput',
+					label: 'Font Name',
+					id: 'resource_settings_textweb_fontname',
+					isVisible: (options) => options.resource_settings_textweb_action == 2,
+					default: 'Arial',
+				},
+				{
+					type: 'dropdown',
+					label: 'Horizontal Text Alignment',
+					id: 'resource_settings_textweb_horizontaltextalignment',
+					isVisible: (options) => options.resource_settings_textweb_action == 3,
+					default: 0,
+					choices: [
+						{label: 'Align Left', id: 0},
+						{label: 'Align Center', id: 1},
+						{label: 'Align Right', id: 2}
+					]
+				},
+				{
+					type: 'dropdown',
+					label: 'Vertical Text Alignment',
+					id: 'resource_settings_textweb_verticaltextalignment',
+					isVisible: (options) => options.resource_settings_textweb_action == 4,
+					default: 0,
+					choices: [
+						{label: 'Align Top', id: 0},
+						{label: 'Align Center', id: 1},
+						{label: 'Align Bottom', id: 2}
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Line Height',
+					id: 'resource_settings_textweb_lineheight',
+					isVisible: (options) => options.resource_settings_textweb_action == 5,
+					default: '550.0',
+				},
+				{
+					type: 'textinput',
+					label: 'URL',
+					id: 'resource_settings_textweb_url',
+					isVisible: (options) => options.resource_settings_textweb_action == 6,
+					default: 'www.pixera.one',
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.resource_settings_textweb_action;
+
+				switch (id) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setText',
+							{'handle':parseInt(opt.resource_settings_textweb_resource),
+								'text':opt.resource_settings_textweb_text});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setFontWithName',
+							{'handle':parseInt(opt.resource_settings_textweb_resource),
+								'fontName':opt.resource_settings_textweb_fontname});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setHorizontalTextAlignment',
+							{'handle':parseInt(opt.resource_settings_textweb_resource),
+								'textAlignment':parseInt(opt.resource_settings_textweb_horizontaltextalignment)});
+						break;
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setVerticalTextAlignment',
+							{'handle':parseInt(opt.resource_settings_textweb_resource),
+								'textAlignment':parseInt(opt.resource_settings_textweb_verticaltextalignment)});
+						break;
+					case 5:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setLineHeight',
+							{'handle':parseInt(opt.resource_settings_textweb_resource),
+								'lineHeight':parseFloat(opt.resource_settings_textweb_lineheight)});
+						break;
+					case 6:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setUrl',
+							{'handle':parseInt(opt.resource_settings_textweb_resource),
+								'url':opt.resource_settings_textweb_url});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/8/2023 by Cody Luketic
+		actions.resource_settings_color = {
+			name: 'Resource Settings Color',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Resource',
+					id: 'resource_settings_color_resource',
+					default: 0,
+					choices: self.CHOICES_RESOURCENAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'resource_settings_color_action',
+					default: 1,
+					choices:[
+						{label: 'Set Use Gradient', id: 1},
+						{label: 'Set Color at Index', id: 2}
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Index',
+					id: 'resource_settings_color_index',
+					isVisible: (options) => options.resource_settings_color_action == 2,
+					default: '255',
+				},
+				{
+					type: 'textinput',
+					label: 'Red Value (0-255)',
+					id: 'resource_settings_color_red',
+					isVisible: (options) => options.resource_settings_color_action == 2,
+					default: '255',
+				},
+				{
+					type: 'textinput',
+					label: 'Green Value (0-255)',
+					id: 'resource_settings_color_green',
+					isVisible: (options) => options.resource_settings_color_action == 2,
+					default: '255',
+				},
+				{
+					type: 'textinput',
+					label: 'Blue Value (0-255)',
+					id: 'resource_settings_color_blue',
+					isVisible: (options) => options.resource_settings_color_action == 2,
+					default: '255',
+				},
+				{
+					type: 'textinput',
+					label: 'Alpha Value (0-255)',
+					id: 'resource_settings_color_alpha',
+					isVisible: (options) => options.resource_settings_color_action == 2,
+					default: '255',
+				},
+				{
+					type: 'textinput',
+					label: 'Position',
+					id: 'resource_settings_color_position',
+					isVisible: (options) => options.resource_settings_color_action == 2,
+					default: '0.0',
+				},
+				{
+					type: 'textinput',
+					label: 'Color Name',
+					id: 'resource_settings_color_colorname',
+					isVisible: (options) => options.resource_settings_color_action == 2,
+					default: 'Color 1',
+				},
+				{
+					type: 'checkbox',
+					label: 'Use Gradient: Make Toggle',
+					id: 'resource_settings_color_gradient_toggle',
+					isVisible: (options) => options.resource_settings_color_action == 1,
+					default: false,
+				},
+				{
+					type: 'checkbox',
+					label: 'Use Gradient',
+					id: 'resource_settings_color_gradient',
+					isVisible: (options) => options.resource_settings_color_action == 1
+						&& options.resource_settings_color_gradient_toggle == false
+						|| options.resource_settings_color_action == 2,
+					default: false,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.resource_settings_color_action;
+
+				if(opt.resource_settings_color_gradient_toggle && id == 1) {
+					self.RESOURCE_SETTINGS_COLOR_RESOURCE = opt.resource_settings_color_resource
+					self.pixera.sendParams(37,'Pixera.Resources.Resource.getUseGradient',
+						{'handle':parseInt(opt.resource_settings_color_resource)});
+				}
+				else {
+					switch (id) {
+						case 1:
+							self.pixera.sendParams(0,'Pixera.Resources.Resource.setUseGradient',
+								{'handle':parseInt(opt.resource_settings_color_resource),
+									'useGradient':opt.resource_settings_color_gradient});
+							break;
+						case 2:
+							self.pixera.sendParams(0,'Pixera.Resources.Resource.setColorAtIndex',
+								{'handle':parseInt(opt.resource_settings_color_resource),
+									'index':parseInt(opt.resource_settings_color_index),
+									'red':parseInt(opt.resource_settings_color_red),
+									'green':parseInt(opt.resource_settings_color_green),
+									'blue':parseInt(opt.resource_settings_color_blue),
+									'alpha':parseInt(opt.resource_settings_color_alpha),
+									'position':parseFloat(opt.resource_settings_color_position),
+									'name':opt.resource_settings_color_colorname,
+									'useGradient':opt.resource_settings_color_gradient});
+							break;
+						default:
+							break;
+					}
+				}
+			}
+		}
+
+		//Created 11/8/2023 by Cody Luketic
+		actions.resource_multiresource = {
+			name: 'Resource Multiresource',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Resource',
+					id: 'resource_multiresource_resource',
+					default: 0,
+					choices: self.CHOICES_RESOURCENAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'resource_multiresource_action',
+					default: 0,
+					choices:[
+						{label: 'Remove Multiresource Index', id: 1},
+						{label: 'Add Multiresource Item', id: 2},
+						{label: 'Replace Multiresource Item by Index', id: 3},
+						{label: 'Set Multiresource Resolution', id: 4},
+						{label: 'Set Multiresource Item Size by Index', id: 5},
+						{label: 'Set Multiresource Item Position by Index', id: 6},
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Index',
+					id: 'resource_multiresource_index',
+					isVisible: (options) => options.resource_multiresource_action == 1
+						|| options.resource_multiresource_action == 3
+						|| options.resource_multiresource_action == 5
+						|| options.resource_multiresource_action == 6,
+					default: '1',
+				},
+				{
+					type: 'textinput',
+					label: 'Id',
+					id: 'resource_multiresource_id',
+					isVisible: (options) => options.resource_multiresource_action == 2
+						|| options.resource_multiresource_action == 3,
+					default: '1',
+				},
+				{
+					type: 'textinput',
+					label: 'Width',
+					id: 'resource_multiresource_width',
+					isVisible: (options) => options.resource_multiresource_action == 4
+						|| options.resource_multiresource_action == 5,
+					default: '1',
+				},
+				{
+					type: 'textinput',
+					label: 'Height',
+					id: 'resource_multiresource_height',
+					isVisible: (options) => options.resource_multiresource_action == 4
+						|| options.resource_multiresource_action == 5,
+					default: '1',
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.resource_multiresource_action;
+
+				switch (id) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.removeMultiresourceIndex',
+							{'handle':parseInt(opt.resource_multiresource_resource),
+								'index':parseInt(opt.resource_multiresource_index)});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.addMultiresourceItem',
+							{'handle':parseInt(opt.resource_multiresource_resource),
+								'id':parseInt(opt.resource_multiresource_id)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.replaceMultiresourceItemByIndex',
+							{'handle':parseInt(opt.resource_multiresource_resource),
+								'index':parseInt(opt.resource_multiresource_index),
+								'id':parseInt(opt.resource_multiresource_id)});
+						break;
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.resetEngine',
+							{'handle':parseInt(opt.resource_multiresource_resource)});
+						break;
+					case 5:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.wakeUp',
+							{'handle':parseInt(opt.resource_multiresource_resource)});
+						break;
+					default:
+						break;
+				}
 			}
 		}
 
@@ -848,8 +1369,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Screen Name',
-					id: 'screen_transform_screenname',
+					label: 'Screen',
+					id: 'screen_transform_screen',
 					default: 0,
 					choices: self.CHOICES_SCREENNAME
 				},
@@ -951,28 +1472,28 @@ module.exports  = {
 				switch(opt.screen_transform_type) {
 					case 1:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPosition',
-							{'handle':parseInt(opt.screen_transform_screenname),
+							{'handle':parseInt(opt.screen_transform_screen),
 								'xPos':parseFloat(opt.screen_transform_position_x),
 								'yPos':parseFloat(opt.screen_transform_position_y),
 								'zPos':parseFloat(opt.screen_transform_position_z)});
 						break;
 					case 2:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setRotation',
-							{'handle':parseInt(opt.screen_transform_screenname),
+							{'handle':parseInt(opt.screen_transform_screen),
 								'xRot':parseFloat(opt.screen_transform_rotation_x),
 								'yRot':parseFloat(opt.screen_transform_rotation_y),
 								'zRot':parseFloat(opt.screen_transform_rotation_z)});
 						break;
 					case 3:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setScale',
-							{'handle':parseInt(opt.screen_transform_screenname),
+							{'handle':parseInt(opt.screen_transform_screen),
 								'xScale':parseFloat(opt.screen_transform_scale_x),
 								'yScale':parseFloat(opt.screen_transform_scale_y),
 								'zScale':parseFloat(opt.screen_transform_scale_z)});
 						break;
 					case 4:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPosRot',
-							{'handle':parseInt(opt.screen_transform_screenname),
+							{'handle':parseInt(opt.screen_transform_screen),
 								'xPos':parseFloat(opt.screen_transform_position_x),
 								'yPos':parseFloat(opt.screen_transform_position_y),
 								'zPos':parseFloat(opt.screen_transform_position_z),
@@ -982,7 +1503,7 @@ module.exports  = {
 						break;
 					case 5:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPosRotScale',
-							{'handle':parseInt(opt.screen_transform_screenname),
+							{'handle':parseInt(opt.screen_transform_screen),
 								'xPos':parseFloat(opt.screen_transform_position_x),
 								'yPos':parseFloat(opt.screen_transform_position_y),
 								'zPos':parseFloat(opt.screen_transform_position_z),
@@ -1005,8 +1526,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Screen Name',
-					id: 'screen_perspective_transform_screenname',
+					label: 'Screen',
+					id: 'screen_perspective_transform_screen',
 					default: 0,
 					choices: self.CHOICES_SCREENNAME
 				},
@@ -1099,28 +1620,28 @@ module.exports  = {
 				switch(opt.screen_perspective_transform_type) {
 					case 1:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPerspectivePosition',
-							{'handle':parseInt(opt.screen_perspective_transform_screenname),
+							{'handle':parseInt(opt.screen_perspective_transform_screen),
 								'xPos':parseFloat(opt.screen_perspective_transform_position_x),
 								'yPos':parseFloat(opt.screen_perspective_transform_position_y),
 								'zPos':parseFloat(opt.screen_perspective_transform_position_z)});
 						break;
 					case 2:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPerspectivePositionWithLookAt',
-							{'handle':parseInt(opt.screen_perspective_transform_screenname),
+							{'handle':parseInt(opt.screen_perspective_transform_screen),
 								'xPos':parseFloat(opt.screen_perspective_transform_positionlookat_x),
 								'yPos':parseFloat(opt.screen_perspective_transform_positionlookat_y),
 								'zPos':parseFloat(opt.screen_perspective_transform_positionlookat_z)});
 						break;
 					case 3:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setPerspectiveRotation',
-							{'handle':parseInt(opt.screen_perspective_transform_screenname),
+							{'handle':parseInt(opt.screen_perspective_transform_screen),
 								'xRot':parseFloat(opt.screen_perspective_transform_rotation_x),
 								'yRot':parseFloat(opt.screen_perspective_transform_rotation_y),
 								'zRot':parseFloat(opt.screen_perspective_transform_rotation_z)});
 						break;
 					case 4:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.snapPerspectiveCornersToScreen',
-							{'handle':parseInt(opt.screen_perspective_transform_screenname),
+							{'handle':parseInt(opt.screen_perspective_transform_screen),
 								'mode':parseFloat(opt.screen_perspective_transform_mode)});
 						break;
 					default:
@@ -1135,8 +1656,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Screen Name',
-					id: 'screen_camera_transform_screenname',
+					label: 'Screen',
+					id: 'screen_camera_transform_screen',
 					default: 0,
 					choices: self.CHOICES_SCREENNAME
 				},
@@ -1221,21 +1742,21 @@ module.exports  = {
 				switch(opt.screen_camera_transform_type) {
 					case 1:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setCameraPosition',
-							{'handle':parseInt(opt.screen_camera_transform_screenname),
+							{'handle':parseInt(opt.screen_camera_transform_screen),
 								'xPos':parseFloat(opt.screen_camera_transform_position_x),
 								'yPos':parseFloat(opt.screen_camera_transform_position_y),
 								'zPos':parseFloat(opt.screen_camera_transform_position_z)});
 						break;
 					case 2:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setCameraPositionWithLookAt',
-							{'handle':parseInt(opt.screen_camera_transform_screenname),
+							{'handle':parseInt(opt.screen_camera_transform_screen),
 								'xPos':parseFloat(opt.screen_camera_transform_positionlookat_x),
 								'yPos':parseFloat(opt.screen_camera_transform_positionlookat_y),
 								'zPos':parseFloat(opt.screen_camera_transform_positionlookat_z)});
 						break;
 					case 3:
 						self.pixera.sendParams(0,'Pixera.Screens.Screen.setCameraRotation',
-							{'handle':parseInt(opt.screen_camera_transform_screenname),
+							{'handle':parseInt(opt.screen_camera_transform_screen),
 								'xRot':parseFloat(opt.screen_camera_transform_rotation_x),
 								'yRot':parseFloat(opt.screen_camera_transform_rotation_y),
 								'zRot':parseFloat(opt.screen_camera_transform_rotation_z)});
@@ -1252,8 +1773,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Studio Camera Name',
-					id: 'screen_studiocamera_transform_studiocameraname',
+					label: 'Studio Camera',
+					id: 'screen_studiocamera_transform_studiocamera',
 					default: 0,
 					choices: self.CHOICES_STUDIOCAMERANAME
 				},
@@ -1478,21 +1999,21 @@ module.exports  = {
 				switch(opt.screen_studiocamera_transform_type) {
 					case 1:
 						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setPosition',
-							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocamera),
 								'xPos':parseFloat(opt.screen_studiocamera_transform_position_x),
 								'yPos':parseFloat(opt.screen_studiocamera_transform_position_y),
 								'zPos':parseFloat(opt.screen_studiocamera_transform_position_z)});
 						break;
 					case 2:
 						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setRotation',
-							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocamera),
 								'xRot':parseFloat(opt.screen_studiocamera_transform_rotation_x),
 								'yRot':parseFloat(opt.screen_studiocamera_transform_rotation_y),
 								'zRot':parseFloat(opt.screen_studiocamera_transform_rotation_z)});
 						break;
 					case 3:
 						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTransformation',
-							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocamera),
 								'xPos':parseFloat(opt.screen_studiocamera_transform_position_x),
 								'yPos':parseFloat(opt.screen_studiocamera_transform_position_y),
 								'zPos':parseFloat(opt.screen_studiocamera_transform_position_z),
@@ -1505,7 +2026,7 @@ module.exports  = {
 					/*
 					case 4:
 						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTransformationAndLensProps',
-							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocamera),
 								'xPos':parseFloat(opt.screen_studiocamera_transform_position_x),
 								'yPos':parseFloat(opt.screen_studiocamera_transform_position_y),
 								'zPos':parseFloat(opt.screen_studiocamera_transform_position_z),
@@ -1527,7 +2048,7 @@ module.exports  = {
 						break;
 					case 5:
 						self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTransformationAndLensPropsExt',
-							{'handle':parseInt(opt.screen_studiocamera_transform_studiocameraname),
+							{'handle':parseInt(opt.screen_studiocamera_transform_studiocamera),
 								'xPos':parseFloat(opt.screen_studiocamera_transform_position_x),
 								'yPos':parseFloat(opt.screen_studiocamera_transform_position_y),
 								'zPos':parseFloat(opt.screen_studiocamera_transform_position_z),
@@ -1566,8 +2087,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Studio Camera Name',
-					id: 'screen_studiocamera_tracking_studiocameraname',
+					label: 'Studio Camera',
+					id: 'screen_studiocamera_tracking_studiocamera',
 					default: 0,
 					choices: self.CHOICES_STUDIOCAMERANAME
 				},
@@ -1615,35 +2136,35 @@ module.exports  = {
 				let opt = event.options;
 				
 				if(opt.screen_studiocamera_trackinginputpause_toggle) {
-					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
+					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERA = opt.screen_studiocamera_tracking_studiocamera;
 					self.pixera.sendParams(28,'Pixera.Screens.StudioCamera.getTrackingInputPause',
-						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocamera)});
 				}
 				else {
 					self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setTrackingInputPause',
-						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname),
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocamera),
 							'pause':opt.screen_studiocamera_tracking_trackinginputpause});
 				}
 
 				if(opt.screen_studiocamera_tracking_positionfromtracking_toggle) {
-					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
+					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERA = opt.screen_studiocamera_tracking_studiocamera;
 					self.pixera.sendParams(29,'Pixera.Screens.StudioCamera.getUsePositionPropertiesFromTracking',
-						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocamera)});
 				}
 				else {
 					self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setUsePositionPropertiesFromTracking',
-						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname),
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocamera),
 							'pause':opt.screen_studiocamera_tracking_positionfromtracking});
 				}
 
 				if(opt.screen_studiocamera_tracking_rotationfromtracking_toggle) {
-					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERANAME = opt.screen_studiocamera_tracking_studiocameraname;
+					self.SCREEN_STUDIOCAMERA_TRACKING_STUDIOCAMERA = opt.screen_studiocamera_tracking_studiocamera;
 					self.pixera.sendParams(30,'Pixera.Screens.StudioCamera.getUseRotationPropertiesFromTracking',
-						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname)});
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocamera)});
 				}
 				else {
 					self.pixera.sendParams(0,'Pixera.Screens.StudioCamera.setUseRotationPropertiesFromTracking',
-						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocameraname),
+						{'handle':parseInt(opt.screen_studiocamera_tracking_studiocamera),
 							'pause':opt.screen_studiocamera_tracking_rotationfromtracking});
 				}
 			}
@@ -1717,8 +2238,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Projector Name',
-					id: 'projector_transform_projectorname',
+					label: 'Projector',
+					id: 'projector_transform_projector',
 					default: 0,
 					choices: self.CHOICES_PROJECTORNAME
 				},
@@ -1788,27 +2309,27 @@ module.exports  = {
 				switch(opt.projector_transform_type) {
 					case 1:
 						self.pixera.sendParams(0,'Pixera.Projectors.Projector.setPosition',
-							{'handle':parseInt(opt.projector_transform_projectorname),
+							{'handle':parseInt(opt.projector_transform_projector),
 								'xPos':parseFloat(opt.projector_transform_position_x),
 								'yPos':parseFloat(opt.projector_transform_position_y),
 								'zPos':parseFloat(opt.projector_transform_position_z)});
 						break;
 					case 2:
 						self.pixera.sendParams(0,'Pixera.Projectors.Projector.setRotation',
-							{'handle':parseInt(opt.projector_transform_projectorname),
+							{'handle':parseInt(opt.projector_transform_projector),
 								'xRot':parseFloat(opt.projector_transform_rotation_x),
 								'yRot':parseFloat(opt.projector_transform_rotation_y),
 								'zRot':parseFloat(opt.projector_transform_rotation_z)});
 						break;
 					case 3:
 						self.pixera.sendParams(0,'Pixera.Projectors.Projector.setPosition',
-							{'handle':parseInt(opt.projector_transform_projectorname),
+							{'handle':parseInt(opt.projector_transform_projector),
 								'xPos':parseFloat(opt.projector_transform_position_x),
 								'yPos':parseFloat(opt.projector_transform_position_y),
 								'zPos':parseFloat(opt.projector_transform_position_z)});
 
 						self.pixera.sendParams(0,'Pixera.Projectors.Projector.setRotation',
-							{'handle':parseInt(opt.projector_transform_projectorname),
+							{'handle':parseInt(opt.projector_transform_projector),
 								'xRot':parseFloat(opt.projector_transform_rotation_x),
 								'yRot':parseFloat(opt.projector_transform_rotation_y),
 								'zRot':parseFloat(opt.projector_transform_rotation_z)});
@@ -1825,8 +2346,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Projector Name',
-					id: 'projector_blackout_projectorname',
+					label: 'Projector',
+					id: 'projector_blackout_projector',
 					default: 0,
 					choices: self.CHOICES_PROJECTORNAME
 				}
@@ -1834,9 +2355,9 @@ module.exports  = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.PROJECTOR_BLACKOUT_PROJECTORNAME = opt.projector_blackout_projectorname;
+				self.PROJECTOR_BLACKOUT_PROJECTOR = opt.projector_blackout_projector;
 				self.pixera.sendParams(31,'Pixera.Projectors.Projector.getBlackout',
-					{'handle':parseInt(opt.projector_blackout_projectorname)});
+					{'handle':parseInt(opt.projector_blackout_projector)});
 			}
 		}
 
@@ -2134,8 +2655,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_scrubcurrenttime_timelinename',
+					label: 'Timeline',
+					id: 'timeline_scrubcurrenttime_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
@@ -2150,7 +2671,7 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.scrubCurrentTime',
-					{'handle':parseInt(opt.timeline_scrubcurrenttime_timelinename),
+					{'handle':parseInt(opt.timeline_scrubcurrenttime_timeline),
 						'frames':parseInt(opt.timeline_scrubcurrenttime_frames)});
 			}
 		}
@@ -2161,8 +2682,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_zoomfactor_timelinename',
+					label: 'Timeline',
+					id: 'timeline_zoomfactor_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
@@ -2170,7 +2691,7 @@ module.exports  = {
 					type: 'textinput',
 					label: 'Zoom Factor',
 					id: 'timeline_zoomfactor_factor',
-					default: 1.0,
+					default: '1.0',
 					regex: self.REGEX_FLOAT
 				}
 			],
@@ -2178,7 +2699,7 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.setZoomFactor',
-					{'handle':parseInt(opt.timeline_zoomfactor_timelinename),
+					{'handle':parseInt(opt.timeline_zoomfactor_timeline),
 						'zoomFactor':parseFloat(opt.timeline_zoomfactor_factor)});
 			}
 		}
@@ -2189,8 +2710,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_select_timelinename',
+					label: 'Timeline',
+					id: 'timeline_select_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				}
@@ -2199,7 +2720,7 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.selectThis',
-					{'handle':parseInt(opt.timeline_select_timelinename)});
+					{'handle':parseInt(opt.timeline_select_timeline)});
 			}
 		}
 
@@ -2209,15 +2730,15 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_select_timelinename',
+					label: 'Timeline',
+					id: 'timeline_moverenderorder_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
 				{
 					type: 'checkbox',
 					label: 'Move (On = Down, Off = Up)',
-					id: 'timeline_moverenderorder',
+					id: 'timeline_moverenderorder_state',
 					default: true,
 				}
 			],
@@ -2225,7 +2746,7 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.moveInRenderOrder',
-					{'handle':parseInt(opt.timeline_select_timelinename), 'moveDown':opt.timeline_moverenderorder});
+					{'handle':parseInt(opt.timeline_moverenderorder_timeline), 'moveDown':opt.timeline_moverenderorder_state});
 			}
 		}
 
@@ -2235,25 +2756,25 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_create_layer_timelinename',
+					label: 'Timeline',
+					id: 'timeline_create_layer_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
 				{
 					type: 'textinput',
-					label: 'Layer Name',
-					id: 'timeline_create_layer_layername',
+					label: 'Name',
+					id: 'timeline_create_layer_name',
 					default: 'Layer 1',
 				}
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				self.CREATE_LAYER_LAYERNAME = opt.timeline_create_layer_layername;
+				self.CREATE_LAYER_NAME = opt.timeline_create_layer_name;
 
 				self.pixera.sendParams(32,'Pixera.Timelines.Timeline.createLayer',
-					{'handle':parseInt(opt.timeline_create_layer_timelinename)});
+					{'handle':parseInt(opt.timeline_create_layer_timeline)});
 			}
 		}
 
@@ -2263,21 +2784,21 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_create_cue_timelinename',
+					label: 'Timeline',
+					id: 'timeline_create_cue_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
 				{
 					type: 'textinput',
 					label: 'Name',
-					id: 'timeline_create_cue_cuename',
+					id: 'timeline_create_cue_name',
 					default: 'Cue 1',
 				},
 				{
 					type: 'dropdown',
 					label: 'Operation',
-					id: 'timeline_create_cue_cueoperation',
+					id: 'timeline_create_cue_operation',
 					default: 1,
 					choices:[
 						{label: 'Play', id: 1},
@@ -2325,12 +2846,12 @@ module.exports  = {
 				let opt = event.options;
 
 				if(opt.timeline_create_cue_atcurrenttime) {
-					self.TIMELINE_CREATE_CUE_TIMELINEHANDLE = parseInt(opt.timeline_create_cue_timelinename);
-					self.TIMELINE_CREATE_CUE_CUENAME = opt.timeline_create_cue_cuename;
-					self.TIMELINE_CREATE_CUE_CUEOPERATION = parseInt(opt.timeline_create_cue_cueoperation);
+					self.TIMELINE_CREATE_CUE_TIMELINEHANDLE = parseInt(opt.timeline_create_cue_timeline);
+					self.TIMELINE_CREATE_CUE_NAME = opt.timeline_create_cue_name;
+					self.TIMELINE_CREATE_CUE_CUEOPERATION = parseInt(opt.timeline_create_cue_operation);
 
-					self.pixera.sendParams(26,'Pixera.Timelines.Timeline.getCurrentTime',
-						{'handle':parseInt(opt.timeline_create_cue_timelinename)});
+					self.pixera.sendParams(34,'Pixera.Timelines.Timeline.getCurrentTime',
+						{'handle':parseInt(opt.timeline_create_cue_timeline)});
 				}
 				else {
 					let hour = parseInt(await self.parseVariablesInString(opt.timeline_create_cue_h));
@@ -2340,7 +2861,7 @@ module.exports  = {
 
 					let fps = 60;
 					for(let i = 0; i <self.CHOICES_TIMELINEFEEDBACK.length; i++) {
-						if(self.CHOICES_TIMELINEFEEDBACK[i]['handle'] == opt.timeline_create_cue_timelinename){
+						if(self.CHOICES_TIMELINEFEEDBACK[i]['handle'] == opt.timeline_create_cue_timeline){
 							fps = self.CHOICES_TIMELINEFEEDBACK[i]['fps'];
 							break;
 						}
@@ -2348,10 +2869,10 @@ module.exports  = {
 
 					let time = (((hour * 60) * 60) * parseInt(fps)) + ((min * 60) * parseInt(fps)) + (sec * parseInt(fps)) + frame;
 					self.pixera.sendParams(0,'Pixera.Timelines.Timeline.createCue',
-						{'handle':parseInt(opt.timeline_create_cue_timelinename),
-							'name':opt.timeline_create_cue_cuename,
+						{'handle':parseInt(opt.timeline_create_cue_timeline),
+							'name':opt.timeline_create_cue_name,
 							'timeInFrames':time,
-							'operation':parseInt(opt.timeline_create_cue_cueoperation)});
+							'operation':parseInt(opt.timeline_create_cue_operation)});
 				}
 			}
 		}
@@ -2362,8 +2883,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_removecues_timelinename',
+					label: 'Timeline',
+					id: 'timeline_removecues_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				}
@@ -2372,7 +2893,7 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.removeCues',
-					{'handle':parseInt(opt.timeline_removecues_timelinename)});
+					{'handle':parseInt(opt.timeline_removecues_timeline)});
 			}
 		}
 
@@ -2382,8 +2903,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_reset_timelinename',
+					label: 'Timeline',
+					id: 'timeline_reset_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				}
@@ -2392,7 +2913,7 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.reset',
-					{'handle':parseInt(opt.timeline_reset_timelinename)});
+					{'handle':parseInt(opt.timeline_reset_timeline)});
 			}
 		}
 
@@ -2402,8 +2923,8 @@ module.exports  = {
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Timeline Name',
-					id: 'timeline_speedfactor_timelinename',
+					label: 'Timeline',
+					id: 'timeline_speedfactor_timeline',
 					default: 0,
 					choices: self.CHOICES_TIMELINENAME
 				},
@@ -2411,7 +2932,7 @@ module.exports  = {
 					type: 'textinput',
 					label: 'Speed Factor',
 					id: 'timeline_speedfactor_factor',
-					default: 1.0,
+					default: '1.0',
 					regex: self.REGEX_FLOAT
 				}
 			],
@@ -2419,7 +2940,7 @@ module.exports  = {
 				let opt = event.options;
 
 				self.pixera.sendParams(0,'Pixera.Timelines.Timeline.setSpeedFactor',
-					{'handle':parseInt(opt.timeline_speedfactor_timelinename),
+					{'handle':parseInt(opt.timeline_speedfactor_timeline),
 						'factor':parseFloat(opt.timeline_speedfactor_factor)});
 			}
 		}
@@ -2589,14 +3110,14 @@ module.exports  = {
 						self.pixera.sendParams(44,'Pixera.Timelines.Layer.getInst',
 							{'instancePath': opt.layer_mute_extended_path});
 					}
-					else if(opt.layer_mute_extended_parameter == 'muteVolume') {
+					else {
 						self.pixera.sendParams(45,'Pixera.Timelines.Layer.getInst',
 							{'instancePath': opt.layer_mute_extended_path});
 					}	
 				}
 				else {
-					if(opt.layer_mute_extended_parameter === 1) {
-						if(opt.layer_mute_extended_state === true) {
+					if(opt.layer_mute_extended_parameter == 1) {
+						if(opt.layer_mute_extended_state == true) {
 							self.pixera.sendParams(39,'Pixera.Timelines.Layer.getInst',
 								{'instancePath': opt.layer_mute_extended_path});
 						}
@@ -2607,7 +3128,7 @@ module.exports  = {
 					}
 					else
 					{
-						if(opt.layer_mute_extended_state === true) {
+						if(opt.layer_mute_extended_state == true) {
 							self.pixera.sendParams(41,'Pixera.Timelines.Layer.getInst',
 								{'instancePath': opt.layer_mute_extended_path});
 						}
