@@ -45,6 +45,7 @@ class Pixera {
         this.initStudioCameras();
         this.initProjectors();
         this.initResources();
+        this.initResourceFolders();
         this.initTimelines();
         this.initScreens();
         if(self.config.polling)
@@ -171,6 +172,10 @@ class Pixera {
     let self = this.instance;
 		this.send(35,'Pixera.Resources.getResources');
   }
+  initResourceFolders(){
+    let self = this.instance;
+		this.send(48,'Pixera.Resources.getResourceFolders');
+  }
   initTimelines(){
 		let self = this.instance;
 		this.send(11,'Pixera.Timelines.getTimelines');
@@ -188,6 +193,8 @@ class Pixera {
 		self.CHOICES_PROJECTORHANDLE = [];
     self.CHOICES_RESOURCENAME = [{label: '',id:0}]
     self.CHOICES_RESOURCEHANDLE = [];
+    self.CHOICES_RESOURCEFOLDERNAME = [{label: '',id:0}]
+    self.CHOICES_RESOURCEFOLDERHANDLE = [];
 		self.CHOICES_TIMELINENAME = [{label: '',id:0}];
 		self.CHOICES_TIMELINEHANDLE = [];
     self.CHOICES_TIMELINEFEEDBACK = [];
@@ -197,10 +204,11 @@ class Pixera {
 		self.CHOICES_CUEHANDLE = [];
 		self.CHOICES_FADELIST = [];
 
-    self.INDEXNAME_LIVESYSTEM = 0;
-    self.INDEXNAME_STUDIOCAMERA = 0;
-    self.INDEXNAME_OUTPUT = 0;
-    self.INDEXNAME_RESOURCE = 0;
+    self.INDEX_LIVESYSTEM = 0;
+    self.INDEX_STUDIOCAMERA = 0;
+    self.INDEX_OUTPUT = 0;
+    self.INDEX_RESOURCE = 0;
+    self.INDEX_RESOURCEFOLDER = 0;
   }
   initScreens(){
 		let self = this.instance;
@@ -282,7 +290,7 @@ class Pixera {
         case 15: //Pixera.LiveSystems.getLiveSystems
         {
           let result = jsonData.result;
-          self.INDEXNAME_LIVESYSTEM = 0;
+          self.INDEX_LIVESYSTEM = 0;
           if(result != null){
             self.CHOICES_LIVESYSTEMHANDLE = result;
             for(let i = 0; i < result.length; i++){
@@ -297,8 +305,8 @@ class Pixera {
         {
           let result = jsonData.result;
           if(result != null){
-            self.CHOICES_LIVESYSTEMNAME.push({label: result, id:self.CHOICES_LIVESYSTEMHANDLE[self.INDEXNAME_LIVESYSTEM]});
-            self.INDEXNAME_LIVESYSTEM += 1;
+            self.CHOICES_LIVESYSTEMNAME.push({label: result, id:self.CHOICES_LIVESYSTEMHANDLE[self.INDEX_LIVESYSTEM]});
+            self.INDEX_LIVESYSTEM += 1;
           }
           self.updateActions();
         }
@@ -306,7 +314,7 @@ class Pixera {
         case 17: //Pixera.Screens.getStudioCameras
         {
           let result = jsonData.result;
-          self.INDEXNAME_STUDIOCAMERA = 0;
+          self.INDEX_STUDIOCAMERA = 0;
           if(result != null){
             self.CHOICES_STUDIOCAMERAHANDLE = result;
             for(let i = 0; i < result.length; i++){
@@ -321,8 +329,8 @@ class Pixera {
         {
           let result = jsonData.result;
           if(result != null){
-            self.CHOICES_STUDIOCAMERANAME.push({label: result, id:self.CHOICES_STUDIOCAMERAHANDLE[self.INDEXNAME_STUDIOCAMERA]});
-            self.INDEXNAME_STUDIOCAMERA += 1;
+            self.CHOICES_STUDIOCAMERANAME.push({label: result, id:self.CHOICES_STUDIOCAMERAHANDLE[self.INDEX_STUDIOCAMERA]});
+            self.INDEX_STUDIOCAMERA += 1;
           }
           self.updateActions();
         }
@@ -362,7 +370,7 @@ class Pixera {
         case 22: //Pixera.LiveSystems.LiveSystem.getEnabledOutputs
         {
           let result = jsonData.result;
-          self.INDEXNAME_OUTPUT = 0;
+          self.INDEX_OUTPUT = 0;
           if(result != null){
             for(let i = 0; i < result.length; i++){
               self.CHOICES_OUTPUTHANDLE.push(result[i]);
@@ -377,8 +385,8 @@ class Pixera {
         {
           let result = jsonData.result;
           if(result != null){
-            self.CHOICES_OUTPUTNAME.push({label: result, id:self.CHOICES_OUTPUTHANDLE[self.INDEXNAME_OUTPUT]});
-            self.INDEXNAME_OUTPUT += 1;
+            self.CHOICES_OUTPUTNAME.push({label: result, id:self.CHOICES_OUTPUTHANDLE[self.INDEX_OUTPUT]});
+            self.INDEX_OUTPUT += 1;
           }
           self.updateActions();
         }
@@ -488,7 +496,8 @@ class Pixera {
               }
             }
             let time = self.CHOICES_BLENDNAME_FRAMES/fps;
-            this.sendParams(0,'Pixera.Timelines.Cue.blendToThis',{'handle':result,'blendDurationInSeconds':time});
+            /*this.sendParams(0,'Pixera.Timelines.Cue.blendToThis',{'handle':result,'blendDurationInSeconds':time});*/
+            this.sendParams(0,'Pixera.Timelines.Cue.blendToThis',{'handle':result,'blendDuration':time});
           }
         }
         break;
@@ -508,7 +517,7 @@ class Pixera {
         case 35: //Pixera.Resources.getResources
         {
           let result = jsonData.result;
-          self.INDEXNAME_RESOURCE = 0;
+          self.INDEX_RESOURCE = 0;
           if(result != null){
             for(let i = 0; i < result.length; i++){
               self.CHOICES_RESOURCEHANDLE.push(result[i]);
@@ -523,8 +532,8 @@ class Pixera {
         {
           let result = jsonData.result;
           if(result != null){
-            self.CHOICES_RESOURCENAME.push({label: result, id:self.CHOICES_RESOURCEHANDLE[self.INDEXNAME_RESOURCE]});
-            self.INDEXNAME_RESOURCE += 1;
+            self.CHOICES_RESOURCENAME.push({label: result, id:self.CHOICES_RESOURCEHANDLE[self.INDEX_RESOURCE]});
+            self.INDEX_RESOURCE += 1;
           }
           self.updateActions();
         }
@@ -605,6 +614,30 @@ class Pixera {
                 {'handle':self.MUTE_TOGGLE_LAYER});
             }
           }
+        }
+        break;
+        case 48: //Pixera.Resources.getResources
+        {
+          let result = jsonData.result;
+          self.INDEX_RESOURCEFOLDER = 0;
+          if(result != null){
+            for(let i = 0; i < result.length; i++){
+              self.CHOICES_RESOURCEFOLDERHANDLE.push(result[i]);
+              this.sendParams(49,'Pixera.Resources.ResourceFolder.getName',
+                {'handle':result[i]});
+            }
+          }
+          self.updateActions();
+        }
+        break;
+        case 49: //Pixera.Resources.Resource.getName()
+        {
+          let result = jsonData.result;
+          if(result != null){
+            self.CHOICES_RESOURCEFOLDERNAME.push({label: result, id:self.CHOICES_RESOURCEFOLDERHANDLE[self.INDEX_RESOURCEFOLDER]});
+            self.INDEX_RESOURCEFOLDER += 1;
+          }
+          self.updateActions();
         }
         break;
 

@@ -1268,7 +1268,7 @@ module.exports  = {
 			}
 		}
 
-		//Created 11/8/2023 by Cody Luketic
+		//Updated 11/9/2023 by Cody Luketic
 		actions.resource_multiresource = {
 			name: 'Resource Multiresource',
 			options: [
@@ -1283,10 +1283,10 @@ module.exports  = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_multiresource_action',
-					default: 0,
+					default: 1,
 					choices:[
-						{label: 'Remove Multiresource Index', id: 1},
-						{label: 'Add Multiresource Item', id: 2},
+						{label: 'Add Multiresource Item', id: 1},
+						{label: 'Remove Multiresource Index', id: 2},
 						{label: 'Replace Multiresource Item by Index', id: 3},
 						{label: 'Set Multiresource Resolution', id: 4},
 						{label: 'Set Multiresource Item Size by Index', id: 5},
@@ -1297,7 +1297,7 @@ module.exports  = {
 					type: 'textinput',
 					label: 'Index',
 					id: 'resource_multiresource_index',
-					isVisible: (options) => options.resource_multiresource_action == 1
+					isVisible: (options) => options.resource_multiresource_action == 2
 						|| options.resource_multiresource_action == 3
 						|| options.resource_multiresource_action == 5
 						|| options.resource_multiresource_action == 6,
@@ -1307,7 +1307,7 @@ module.exports  = {
 					type: 'textinput',
 					label: 'Id',
 					id: 'resource_multiresource_id',
-					isVisible: (options) => options.resource_multiresource_action == 2
+					isVisible: (options) => options.resource_multiresource_action == 1
 						|| options.resource_multiresource_action == 3,
 					default: '1',
 				},
@@ -1327,6 +1327,20 @@ module.exports  = {
 						|| options.resource_multiresource_action == 5,
 					default: '1',
 				},
+				{
+					type: 'textinput',
+					label: 'Position X',
+					id: 'resource_multiresource_posx',
+					isVisible: (options) => options.resource_multiresource_action == 6,
+					default: '1',
+				},
+				{
+					type: 'textinput',
+					label: 'Position Y',
+					id: 'resource_multiresource_posy',
+					isVisible: (options) => options.resource_multiresource_action == 6,
+					default: '1',
+				},
 			],
 			callback: async (event) => {
 				let opt = event.options;
@@ -1334,14 +1348,14 @@ module.exports  = {
 
 				switch (id) {
 					case 1:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.addMultiresourceItem',
+							{'handle':parseInt(opt.resource_multiresource_resource),
+								'id':parseFloat(opt.resource_multiresource_id)});
+						break;
+					case 2:
 						self.pixera.sendParams(0,'Pixera.Resources.Resource.removeMultiresourceIndex',
 							{'handle':parseInt(opt.resource_multiresource_resource),
 								'index':parseInt(opt.resource_multiresource_index)});
-						break;
-					case 2:
-						self.pixera.sendParams(0,'Pixera.Resources.Resource.addMultiresourceItem',
-							{'handle':parseInt(opt.resource_multiresource_resource),
-								'id':parseInt(opt.resource_multiresource_id)});
 						break;
 					case 3:
 						self.pixera.sendParams(0,'Pixera.Resources.Resource.replaceMultiresourceItemByIndex',
@@ -1350,18 +1364,104 @@ module.exports  = {
 								'id':parseInt(opt.resource_multiresource_id)});
 						break;
 					case 4:
-						self.pixera.sendParams(0,'Pixera.Resources.Resource.resetEngine',
-							{'handle':parseInt(opt.resource_multiresource_resource)});
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setMultiresourceResolution',
+							{'handle':parseInt(opt.resource_multiresource_resource),
+								'width':parseInt(opt.resource_multiresource_width),
+								'height':parseInt(opt.resource_multiresource_height)});
 						break;
 					case 5:
-						self.pixera.sendParams(0,'Pixera.Resources.Resource.wakeUp',
-							{'handle':parseInt(opt.resource_multiresource_resource)});
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setMultiresourceItemSizebyIndex',
+							{'handle':parseInt(opt.resource_multiresource_resource),
+								'index':parseInt(opt.resource_multiresource_index),
+								'width':parseFloat(opt.resource_multiresource_width),
+								'height':parseFloat(opt.resource_multiresource_height)});
+						break;
+					case 6:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setMultiresourceItemPositionbyIndex',
+							{'handle':parseInt(opt.resource_multiresource_resource),
+								'index':parseInt(opt.resource_multiresource_index),
+								'x':parseFloat(opt.resource_multiresource_posx),
+								'y':parseFloat(opt.resource_multiresource_posy)});
 						break;
 					default:
 						break;
 				}
 			}
 		}
+
+		/*
+		//Created 11/9/2023 by Cody Luketic
+		actions.resource_folder_settings = {
+			name: 'Resource Folder Settings',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Resource Folder',
+					id: 'resource_folder_settings_resourcefolder',
+					default: 0,
+					choices: self.CHOICES_RESOURCEFOLDERNAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'resource_folder_settings_action',
+					default: 1,
+					choices:[
+						{label: 'Set Name', id: 1},
+						{label: 'Set DMX Id', id: 2},
+						{label: 'Create Folders From Path', id: 3},
+						{label: 'Change Distribution Target', id: 4},
+						{label: 'Reset Distribution Targets', id: 5}
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Name',
+					id: 'resource_folder_settings_name',
+					isVisible: (options) => options.resource_folder_settings_action == 1,
+					default: 'Resource 1',
+				},
+				{
+					type: 'textinput',
+					label: 'Dmx Id',
+					id: 'resource_folder_settings_dmxid',
+					isVisible: (options) => options.resource_folder_settings_action == 2,
+					default: '1',
+				},
+				{
+					type: 'textinput',
+					label: 'Dmx Id',
+					id: 'resource_folder_settings_dmxid',
+					isVisible: (options) => options.resource_folder_settings_action == 3,
+					default: '1',
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.resource_folder_settings_action;
+
+				switch (id) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setName',
+							{'handle':parseInt(opt.resource_folder_settings_resourcefolder),
+								'name':opt.resource_folder_settings_name});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setCurrentVersion',
+							{'handle':parseInt(opt.resource_folder_settings_resourcefolder),
+								'version':opt.resource_folder_settings_version});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Resources.Resource.setDmxId',
+							{'handle':parseInt(opt.resource_folder_settings_resourcefolder),
+								'id':parseInt(opt.resource_folder_settings_dmxid)});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+		*/
 
 		//Created 11/3/2023 by Cody Luketic
 		actions.screen_transform = {
