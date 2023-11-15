@@ -46,6 +46,7 @@ class Pixera {
         this.initProjectors();
         this.initResources();
         this.initResourceFolders();
+        /*this.initTranscodingFolders();*/
         this.initTimelines();
         this.initScreens();
         if(self.config.polling)
@@ -175,7 +176,11 @@ class Pixera {
   initResourceFolders(){
     let self = this.instance;
 		this.send(48,'Pixera.Resources.getResourceFolders');
-  }
+  }/*
+  initTranscodingFolders(){
+    let self = this.instance;
+		this.send(51,'Pixera.Resources.getTranscodingFolders');
+  }*/
   initTimelines(){
 		let self = this.instance;
 		this.send(11,'Pixera.Timelines.getTimelines');
@@ -195,6 +200,9 @@ class Pixera {
     self.CHOICES_RESOURCEHANDLE = [];
     self.CHOICES_RESOURCEFOLDERNAME = [{label: '',id:0}]
     self.CHOICES_RESOURCEFOLDERHANDLE = [];
+    /*
+    self.CHOICES_TRANSCODEFOLDERNAME = [{label: '',id:0}]
+    */
 		self.CHOICES_TIMELINENAME = [{label: '',id:0}];
 		self.CHOICES_TIMELINEHANDLE = [];
     self.CHOICES_TIMELINEFEEDBACK = [];
@@ -616,21 +624,34 @@ class Pixera {
           }
         }
         break;
-        case 48: //Pixera.Resources.getResources
+        case 48: //Pixera.Resources.getResourceFolders
         {
           let result = jsonData.result;
           self.INDEX_RESOURCEFOLDER = 0;
           if(result != null){
             for(let i = 0; i < result.length; i++){
-              self.CHOICES_RESOURCEFOLDERHANDLE.push(result[i]);
-              this.sendParams(49,'Pixera.Resources.ResourceFolder.getName',
+              this.sendParams(49,'Pixera.Resources.ResourceFolder.getResourceFolders',
                 {'handle':result[i]});
             }
           }
           self.updateActions();
         }
         break;
-        case 49: //Pixera.Resources.Resource.getName()
+        case 49: //Pixera.Resources.ResourceFolder.getResourceFolders
+        {
+          let result = jsonData.result;
+          self.INDEX_RESOURCEFOLDER = 0;
+          if(result != null){
+            for(let i = 0; i < result.length; i++){
+              self.CHOICES_RESOURCEFOLDERHANDLE.push(result[i]);
+              this.sendParams(50,'Pixera.Resources.ResourceFolder.getName',
+                {'handle':result[i]});
+            }
+          }
+          self.updateActions();
+        }
+        break;
+        case 50: //Pixera.Resources.ResourceFolder.getName()
         {
           let result = jsonData.result;
           if(result != null){
@@ -640,6 +661,19 @@ class Pixera {
           self.updateActions();
         }
         break;
+        /*
+        case 51: //Pixera.Resources.getTranscodingFolders
+        {
+          let result = jsonData.result;
+          if(result != null){
+            for(let i = 0; i < result.length; i++){
+              self.CHOICES_TRANSCODEFOLDERNAME.push({label: "TanscodingFolder " + (i + 1), id:result[i]});
+            }
+          }
+          self.updateActions();
+        }
+        break;
+        */
 
         case 9999:  //API
         {

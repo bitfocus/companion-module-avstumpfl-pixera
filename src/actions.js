@@ -1389,8 +1389,7 @@ module.exports  = {
 			}
 		}
 
-		/*
-		//Created 11/9/2023 by Cody Luketic
+		//Updated 11/14/2023 by Cody Luketic
 		actions.resource_folder_settings = {
 			name: 'Resource Folder Settings',
 			options: [
@@ -1409,9 +1408,8 @@ module.exports  = {
 					choices:[
 						{label: 'Set Name', id: 1},
 						{label: 'Set DMX Id', id: 2},
-						{label: 'Create Folders From Path', id: 3},
-						{label: 'Change Distribution Target', id: 4},
-						{label: 'Reset Distribution Targets', id: 5}
+						{label: 'Change Distribution Target', id: 3},
+						{label: 'Reset Distribution Targets', id: 4}
 					]
 				},
 				{
@@ -1429,11 +1427,19 @@ module.exports  = {
 					default: '1',
 				},
 				{
-					type: 'textinput',
-					label: 'Dmx Id',
-					id: 'resource_folder_settings_dmxid',
+					type: 'dropdown',
+					label: 'Livesystem',
+					id: 'resource_folder_settings_livesystem',
 					isVisible: (options) => options.resource_folder_settings_action == 3,
-					default: '1',
+					default: 0,
+					choices: self.CHOICES_LIVESYSTEMNAME
+				},
+				{
+					type: 'checkbox',
+					label: 'Should Distribute',
+					id: 'resource_folder_settings_distribute',
+					isVisible: (options) => options.resource_folder_settings_action == 3,
+					default: false,
 				}
 			],
 			callback: async (event) => {
@@ -1442,19 +1448,202 @@ module.exports  = {
 
 				switch (id) {
 					case 1:
-						self.pixera.sendParams(0,'Pixera.Resources.Resource.setName',
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.setName',
 							{'handle':parseInt(opt.resource_folder_settings_resourcefolder),
 								'name':opt.resource_folder_settings_name});
 						break;
 					case 2:
-						self.pixera.sendParams(0,'Pixera.Resources.Resource.setCurrentVersion',
-							{'handle':parseInt(opt.resource_folder_settings_resourcefolder),
-								'version':opt.resource_folder_settings_version});
-						break;
-					case 3:
-						self.pixera.sendParams(0,'Pixera.Resources.Resource.setDmxId',
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.setDmxId',
 							{'handle':parseInt(opt.resource_folder_settings_resourcefolder),
 								'id':parseInt(opt.resource_folder_settings_dmxid)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.changeDistributionTarget',
+							{'handle':parseInt(opt.resource_folder_settings_resourcefolder),
+								'apEntityLiveSystemHandle':parseInt(opt.resource_folder_settings_livesystem),
+								'shouldDistribute':opt.resource_folder_settings_distribute});
+						break;
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.resetDistributionTargets',
+							{'handle':parseInt(opt.resource_folder_settings_resourcefolder)});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		//Created 11/14/2023 by Cody Luketic
+		actions.resource_folder_content = {
+			name: 'Resource Folder Content',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Resource Folder',
+					id: 'resource_folder_content_resourcefolder',
+					default: 0,
+					choices: self.CHOICES_RESOURCEFOLDERNAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'resource_folder_content_action',
+					default: 1,
+					choices:[
+						{label: 'Create Folders From Path', id: 1},
+						{label: 'Remove This', id: 2},
+						{label: 'Remove This Including Assets', id: 3},
+						/*{label: 'Move Resource to This by Id', id: 4},*/
+						{label: 'Refresh Resources', id: 5},
+						{label: 'Remove All Contents', id: 6},
+						{label: 'Remove All Contents Including Assets', id: 7},
+						{label: 'Delete All Contents Assets From LiveSystem', id: 8}
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Folder Path',
+					id: 'resource_folder_content_path',
+					isVisible: (options) => options.resource_folder_content_action == 1,
+					default: 'Other\\Videos',
+				},/*
+				{
+					type: 'textinput',
+					label: 'Resource Id',
+					id: 'resource_folder_content_resourceid',
+					isVisible: (options) => options.resource_folder_content_action == 4,
+					default: '1.0',
+				},*/
+				{
+					type: 'dropdown',
+					label: 'Livesystem',
+					id: 'resource_folder_content_livesystem',
+					isVisible: (options) => options.resource_folder_content_action == 8,
+					default: 0,
+					choices: self.CHOICES_LIVESYSTEMNAME
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.resource_folder_content_action;
+
+				switch (id) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.createFoldersFrom',
+							{'handle':parseInt(opt.resource_folder_content_resourcefolder),
+								'path':opt.resource_folder_content_path});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.removeThis',
+							{'handle':parseInt(opt.resource_folder_content_resourcefolder)});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.removeThisIncludingAssets',
+							{'handle':parseInt(opt.resource_folder_content_resourcefolder)});
+						break;
+					/*case 4:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.moveResourceToThis',
+							{'handle':parseInt(opt.resource_folder_content_resourcefolder),
+								'id':parseDouble(opt.resource_folder_content_id)});
+						break;*/
+					case 5:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.refreshResources',
+							{'handle':parseInt(opt.resource_folder_content_resourcefolder)});
+						break;
+					case 6:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.removeAllContents',
+							{'handle':parseInt(opt.resource_folder_content_resourcefolder)});
+						break;
+					case 7:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.removeAllContentsIncludingAssets',
+							{'handle':parseInt(opt.resource_folder_content_resourcefolder)});
+						break;
+					case 8:
+						self.pixera.sendParams(0,'Pixera.Resources.ResourceFolder.deleteAllContentsAssetsFromLiveSystem',
+							{'handle':parseInt(opt.resource_folder_content_resourcefolder),
+								'apEntityLiveSystemHandle':parseInt(opt.resource_folder_content_livesystem)});
+						break;
+					default:
+						break;
+				}
+			}
+		}
+		/*
+		//Created 11/14/2023 by Cody Luketic
+		actions.resource_folder_transcode = {
+			name: 'Resource Folder Transcode',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Transcode Folder',
+					id: 'resource_folder_transcode_transcodefolder',
+					default: 0,
+					choices: self.CHOICES_TRANSCODEFOLDERNAME
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'resource_folder_transcode_action',
+					default: 1,
+					choices:[
+						{label: 'Set Used Transcoding Preset', id: 1},
+						{label: 'Set Transcode Automatically', id: 2},
+						{label: 'Set RX Cache as Destination', id: 3},
+						{label: 'Set Destination Directory', id: 4}
+					]
+				},
+				{
+					type: 'textinput',
+					label: 'Preset',
+					id: 'resource_folder_transcode_preset',
+					isVisible: (options) => options.resource_folder_transcode_action == 1,
+					default: '',
+				},
+				{
+					type: 'checkbox',
+					label: 'Transcode Automatically',
+					id: 'resource_folder_transcode_automatic',
+					isVisible: (options) => options.resource_folder_transcode_action == 2,
+					default: '1',
+				},
+				{
+					type: 'checkbox',
+					label: 'Set RX Cache as the Destination',
+					id: 'resource_folder_transcode_rx',
+					isVisible: (options) => options.resource_folder_transcode_action == 3,
+					default: '1',
+				},
+				{
+					type: 'textinput',
+					label: 'Path',
+					id: 'resource_folder_transcode_path',
+					isVisible: (options) => options.resource_folder_transcode_action == 4,
+				}
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let id = opt.resource_folder_transcode_action;
+
+				switch (id) {
+					case 1:
+						self.pixera.sendParams(0,'Pixera.Resources.TranscodeFolder.setUsedTranscodePreset',
+							{'handle':parseInt(opt.resource_folder_transcode_transcodefolder),
+								'preset':opt.resource_folder_transcode_preset});
+						break;
+					case 2:
+						self.pixera.sendParams(0,'Pixera.Resources.TranscodeFolder.setTranscodeAutomatically',
+							{'handle':parseInt(opt.resource_folder_transcode_transcodefolder),
+								'autoTranscode':opt.resource_folder_transcode_automatic});
+						break;
+					case 3:
+						self.pixera.sendParams(0,'Pixera.Resources.TranscodeFolder.setRxCacheAsDestination',
+							{'handle':parseInt(opt.resource_folder_transcode_transcodefolder),
+								'useRxCache':opt.resource_folder_transcode_rx});
+						break;
+					case 4:
+						self.pixera.sendParams(0,'Pixera.Resources.TranscodeFolder.setDestinationDirectory',
+							{'handle':parseInt(opt.resource_folder_transcode_transcodefolder),
+								'path':opt.resource_folder_transcode_path});
 						break;
 					default:
 						break;

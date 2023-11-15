@@ -20,14 +20,35 @@ class PixeraInstance extends InstanceBase {
 	async init(config) {
 		let self = this;
 		//action variables
+		self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
+		self.CHOICES_LIVESYSTEMHANDLE = '';
+		self.CHOICES_OUTPUTNAME = [{label: '',id:0}]
+		self.CHOICES_OUTPUTHANDLE = [];
+		self.CHOICES_STUDIOCAMERANAME = [{label: '',id:0}];
+		self.CHOICES_STUDIOCAMERAHANDLE = [];
+		self.CHOICES_PROJECTORNAME = [{label: '',id:0}];
+		self.CHOICES_PROJECTORHANDLE = [];
+		self.CHOICES_RESOURCENAME = [{label: '',id:0}]
+		self.CHOICES_RESOURCEHANDLE = [];
+		self.CHOICES_RESOURCEFOLDERNAME = [{label: '',id:0}]
+		self.CHOICES_RESOURCEFOLDERHANDLE = [];
+		/*
+		self.CHOICES_TRANSCODEFOLDERNAME = [{label: '',id:0}]
+		*/
 		self.CHOICES_TIMELINENAME = [{label: '',id:0}];
 		self.CHOICES_TIMELINEHANDLE = [];
+		self.CHOICES_TIMELINEFEEDBACK = [];
 		self.CHOICES_SCREENNAME = [{label: '',id:0}];
 		self.CHOICES_SCREENHANDLE = [];
 		self.CHOICES_CUENAME = [];
 		self.CHOICES_CUEHANDLE = [];
-		self.CHOICES_TIMELINEFEEDBACK = [];
 		self.CHOICES_FADELIST = [];
+
+		self.INDEX_LIVESYSTEM = 0;
+		self.INDEX_STUDIOCAMERA = 0;
+		self.INDEX_OUTPUT = 0;
+		self.INDEX_RESOURCE = 0;
+		self.INDEX_RESOURCEFOLDER = 0;
 
 		await self.configUpdated(config);
 	}
