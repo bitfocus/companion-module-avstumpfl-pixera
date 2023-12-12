@@ -4115,14 +4115,27 @@ module.exports = {
 				},
 				{
 					type: 'checkbox',
+					label: 'Toggle',
+					id: 'layer_mute_toggle',
+					default: false,
+				},
+				{
+					type: 'checkbox',
 					label: 'Mute',
 					id: 'layerState',
+					isVisible: (options) => options.layer_mute_toggle == false,
 					default: true,
 				},
 			],
 			callback: async (event) => {
 				let opt = event.options;
 				if (opt.layerParameterMute === 'muteLayer') {
+					if (opt.layer_mute_toggle === true) {
+						self.pixera.sendParams(44, 'Pixera.Timelines.Layer.getInst', {
+							instancePath: opt.layerPath,
+						});
+						return;
+					}
 					if (opt.layerState === true) {
 						self.pixera.sendParams(39, 'Pixera.Timelines.Layer.getInst', {
 							instancePath: opt.layerPath,
@@ -4133,6 +4146,12 @@ module.exports = {
 						});
 					}
 				} else if (opt.layerParameterMute == 'muteVolume') {
+					if (opt.layer_mute_toggle === true) {
+						self.pixera.sendParams(45, 'Pixera.Timelines.Layer.getInst', {
+							instancePath: opt.layerPath,
+						});
+						return;
+					}
 					if (opt.layerState === true) {
 						self.pixera.sendParams(41, 'Pixera.Timelines.Layer.getInst', {
 							instancePath: opt.layerPath,
@@ -4141,79 +4160,6 @@ module.exports = {
 						self.pixera.sendParams(42, 'Pixera.Timelines.Layer.getInst', {
 							instancePath: opt.layerPath,
 						});
-					}
-				}
-			},
-		};
-
-		//Updated 10/31/2023 by Cody Luketic
-		actions.layer_mute_extended = {
-			name: 'Layer Mute Extended',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Layer Path',
-					id: 'layer_mute_extended_path',
-					default: 'Timeline 1.Layer 1',
-				},
-				{
-					type: 'dropdown',
-					label: 'Parameter',
-					id: 'layer_mute_extended_parameter',
-					default: 1,
-					choices: [
-						{ label: 'Mute Layer', id: 1 },
-						{ label: 'Mute Volume', id: 2 },
-					],
-				},
-				{
-					type: 'checkbox',
-					label: 'Make Toggle',
-					id: 'layer_mute_extended_toggle',
-					default: true,
-				},
-				{
-					type: 'checkbox',
-					label: 'Mute',
-					id: 'layer_mute_extended_state',
-					isVisible: (options) => options.layer_mute_extended_toggle == 0,
-					default: true,
-				},
-			],
-			callback: async (event) => {
-				let opt = event.options;
-
-				if (opt.layer_mute_extended_toggle) {
-					if (opt.layer_mute_extended_parameter == 1) {
-						self.pixera.sendParams(44, 'Pixera.Timelines.Layer.getInst', {
-							instancePath: opt.layer_mute_extended_path,
-						});
-					} else {
-						self.pixera.sendParams(45, 'Pixera.Timelines.Layer.getInst', {
-							instancePath: opt.layer_mute_extended_path,
-						});
-					}
-				} else {
-					if (opt.layer_mute_extended_parameter == 1) {
-						if (opt.layer_mute_extended_state == true) {
-							self.pixera.sendParams(39, 'Pixera.Timelines.Layer.getInst', {
-								instancePath: opt.layer_mute_extended_path,
-							});
-						} else {
-							self.pixera.sendParams(40, 'Pixera.Timelines.Layer.getInst', {
-								instancePath: opt.layer_mute_extended_path,
-							});
-						}
-					} else {
-						if (opt.layer_mute_extended_state == true) {
-							self.pixera.sendParams(41, 'Pixera.Timelines.Layer.getInst', {
-								instancePath: opt.layer_mute_extended_path,
-							});
-						} else {
-							self.pixera.sendParams(42, 'Pixera.Timelines.Layer.getInst', {
-								instancePath: opt.layer_mute_extended_path,
-							});
-						}
 					}
 				}
 			},
