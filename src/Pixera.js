@@ -48,8 +48,8 @@ class Pixera {
 				this.initOutputs();
 				this.initStudioCameras();
 				this.initProjectors();
-				this.initResources();
-				this.initResourceFolders();
+				//this.initResources();
+				//this.initResourceFolders();
 				/*this.initTranscodingFolders();*/
 				this.initTimelines();
 				this.initScreens();
