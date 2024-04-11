@@ -1,4 +1,5 @@
 const { instanceStatus, TCPHelper } = require('@companion-module/base');
+const { debug } = require('console');
 const { forEach } = require('lodash');
 const { isIP } = require('net');
 
@@ -48,8 +49,9 @@ class Pixera {
 				this.initOutputs();
 				this.initStudioCameras();
 				this.initProjectors();
+				//don't get resources because it take to long
 				//this.initResources();
-				//this.initResourceFolders();
+				this.initResourceFolders();
 				/*this.initTranscodingFolders();*/
 				this.initTimelines();
 				this.initScreens();
@@ -67,17 +69,69 @@ class Pixera {
 				); //ms for pool selected Timelines
 				this.getSelectedTimeline();
 			});
+			let currentLength = 0;
+			let splittetMessage = '';
 			this.socket.on('data', (chunk) => {
-				const header = 'pxr1';
-				if (chunk.toString('utf8', 0, 4) == header) {
-					let splitChunk = chunk.toString('utf8').split('pxr1');
-					splitChunk.forEach((element) => {
-						if (!element) return;
-						let data = element.substring(4, element.length).trim();
-						//self.log('debug', data);
-						this.processReceivedData(data);
-					});
-				}
+				//const header = 'pxr1';
+				const header = [112, 120, 114, 49];
+				let messageLength = 0;
+				while(chunk.length>0)
+				{
+					if(currentLength == 0)
+					{
+						if(chunk[0] !== header[0] || chunk[1] !== header[1] || chunk[2] !== header[2] || chunk[3] !== header[3])
+						{
+							//console.log('debug','-------------------------------')
+							//console.log('debug', 'header was not correct');
+							//console.log('debug', chunk.toString('utf8'));
+							splittetMessage = '';
+							break;
+						}
+						messageLength = chunk[4] + (chunk[5]<<8) + (chunk[6]<<16) + (chunk[7]<<24);
+						//console.log('debug',chunk[4],chunk[5],chunk[6],chunk[7])
+						if(messageLength<=(chunk.length-8))
+						{
+							splittetMessage += chunk.subarray(0,messageLength+8);
+						}
+						else
+						{
+							//break loop and wait for next chunk to combine
+							splittetMessage += chunk.subarray(0,chunk.length);
+							currentLength += messageLength+8-chunk.length;
+							break;
+						}
+						//console.log('debug',messageLength + " - Size MSG " + (chunk.length));
+						//console.log(splittetMessage.toString('utf8'));
+						if(splittetMessage.length+1 === chunk.length)
+						{
+							chunk = [];
+						}
+						else
+							chunk = chunk.subarray(messageLength+8,chunk.length);
+						//console.log('debug',chunk.length);
+					}
+					else
+					{
+						//console.log('debug', 'combine splitted message');
+						if(currentLength<=chunk.length)
+						{
+							splittetMessage += chunk.subarray(0,currentLength);
+							chunk = chunk.subarray(currentLength,chunk.length);
+							currentLength = 0;
+							//console.log('debug',splittetMessage);
+						}
+						else
+						{
+							console.log('debug','---------');
+							console.log('error','error split second time');
+						}
+
+					}
+					let splitChunk = splittetMessage.substring(8,splittetMessage.length).toString('utf8');
+					this.processReceivedData(splitChunk);
+					splittetMessage = '';
+					
+			}
 			});
 		}
 	}
@@ -605,12 +659,11 @@ class Pixera {
 					{
 						let result = jsonData.result;
 						if (result != null) {
-							let handle = self.TIMELINE_CREATE_CUE_TIMELINEHANDLE;
 							let name = self.TIMELINE_CREATE_CUE_NAME;
 							let operation = self.TIMELINE_CREATE_CUE_CUEOPERATION;
 
 							this.sendParams(0, 'Pixera.Timelines.Timeline.createCue', {
-								handle: handle,
+								handle: jsonData.context.handle,
 								name: name,
 								timeInFrames: result,
 								operation: operation,
@@ -773,6 +826,73 @@ class Pixera {
 						self.updateActions();
 					}
 					break;
+					//---------resources start ----------
+				case 51:
+					this.sendParams(0, 'Pixera.Resources.Resource.removeThis', {
+						handle: parseInt(jsonData.result),
+					});
+					break;
+				case 52:
+					this.sendParams(
+						0,
+						'Pixera.Resources.Resource.removeThisIncludingAssets',
+						{ handle: parseInt(jsonData.result) }
+					);
+					break;
+				case 53:
+					this.sendParams(
+						0,
+						'Pixera.Resources.Resource.deleteFilesOnSystems',
+						{ handle: parseInt(jsonData.result) }
+					);
+					break;
+				case 54:
+					this.sendParams(
+						0,
+						'Pixera.Resources.Resource.deleteAssetFromLiveSystem',
+						{
+							handle: parseInt(jsonData.result),
+							apEntityLiveSystemHandle: self.RESOURCEREMOVE_LIVESYSTEM,
+						}
+					);
+					break;
+				case 55:
+					this.sendParams(0, 'Pixera.Resources.Resource.replace', {
+						handle: parseInt(jsonData.result),
+						path: self.RESOURCE_REPLACE,
+					});
+					break;
+				case 56:
+					this.sendParams(0, 'Pixera.Resources.Resource.refresh', {
+						handle: parseInt(jsonData.result),
+						text: '',
+					});
+					break;
+				case 58:
+					this.sendParams(
+						0,
+						'Pixera.Resources.Resource.resetDistributionTargets',
+						{ handle: parseInt(jsonData.result) }
+					);
+					break;
+				case 59:
+					this.sendParams(
+						0,
+						'Pixera.Resources.Resource.changeDistributionTarget',
+						{
+							handle: parseInt(jsonData.result),
+							apEntityLiveSystemHandle: self.RESOURCECHANGEDIST[0],
+							shouldDistribute: self.RESOURCECHANGEDIST[1],
+						}
+					);
+					break;
+				case 60:
+					this.sendParams(0, 'Pixera.Resources.Resource.distribute', {
+						handle: parseInt(jsonData.result),
+					});
+					break;
+
+
 				/*
         case 51: //Pixera.Resources.getTranscodingFolders
         {

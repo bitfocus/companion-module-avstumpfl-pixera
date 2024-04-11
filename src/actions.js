@@ -1067,16 +1067,14 @@ module.exports = {
 			},
 		};
 
-		//Created 11/8/2023 by Cody Luketic
 		actions.resource_system = {
 			name: 'Resource System',
 			options: [
 				{
-					type: 'dropdown',
-					label: 'Resource',
+					type: 'textinput',
+					label: 'Resource Path',
 					id: 'resource_system_resource',
-					default: 0,
-					choices: self.CHOICES_RESOURCENAME,
+					default: 'Media/Standard Content/Filename.mov',
 				},
 				{
 					type: 'dropdown',
@@ -1134,47 +1132,18 @@ module.exports = {
 
 				switch (id) {
 					case 1:
-						self.pixera.sendParams(0, 'Pixera.Resources.Resource.removeThis', {
-							handle: parseInt(opt.resource_system_resource),
-						});
 						break;
 					case 2:
-						self.pixera.sendParams(
-							0,
-							'Pixera.Resources.Resource.removeThisIncludingAssets',
-							{ handle: parseInt(opt.resource_system_resource) }
-						);
 						break;
 					case 3:
-						self.pixera.sendParams(
-							0,
-							'Pixera.Resources.Resource.deleteFilesOnSystems',
-							{ handle: parseInt(opt.resource_system_resource) }
-						);
 						break;
 					case 4:
-						self.pixera.sendParams(
-							0,
-							'Pixera.Resources.Resource.deleteAssetFromLiveSystem',
-							{
-								handle: parseInt(opt.resource_system_resource),
-								apEntityLiveSystemHandle: parseInt(
-									opt.resource_system_livesystem
-								),
-							}
-						);
+						self.RESOURCEREMOVE_LIVESYSTEM = parseInt(opt.resource_system_livesystem);
 						break;
 					case 5:
-						self.pixera.sendParams(0, 'Pixera.Resources.Resource.replace', {
-							handle: parseInt(opt.resource_system_resource),
-							path: opt.resource_system_filepath,
-						});
+						self.RESOURCE_REPLACE = opt.resource_system_filepath;
 						break;
 					case 6:
-						self.pixera.sendParams(0, 'Pixera.Resources.Resource.refresh', {
-							handle: parseInt(opt.resource_system_resource),
-							text: '',
-						});
 						break;
 					/*case 7:
 						self.pixera.sendParams(0,'Pixera.Resources.Resource.moveToTranscodingFolder',
@@ -1182,36 +1151,23 @@ module.exports = {
 								'folderPath':opt.resource.system.folderpath});
 						break;*/
 					case 8:
-						self.pixera.sendParams(
-							0,
-							'Pixera.Resources.Resource.resetDistributionTargets',
-							{ handle: parseInt(opt.resource_system_resource) }
-						);
 						break;
 					case 9:
-						self.pixera.sendParams(
-							0,
-							'Pixera.Resources.Resource.changeDistributionTarget',
-							{
-								handle: parseInt(opt.resource_system_resource),
-								apEntityLiveSystemHandle: opt.resource.system.livesystem,
-								shouldDistribute: opt.resource.system.shoulddistribute,
-							}
-						);
+						self.RESOURCECHANGEDIST = [opt.resource.system.livesystem, opt.resource.system.shoulddistribute];
 						break;
 					case 10:
-						self.pixera.sendParams(0, 'Pixera.Resources.Resource.distribute', {
-							handle: parseInt(opt.resource_system_resource),
-						});
 						break;
 					default:
 						break;
 				}
+				self.pixera.sendParams(50+id, 'Pixera.Resources.Resource.getInst', {
+					instancePath: opt.resource_system_resource,
+				});
 			},
 		};
 
 		//Created 11/8/2023 by Cody Luketic
-		actions.resource_settings_general = {
+		/*actions.resource_settings_general = {
 			name: 'Resource Settings General',
 			options: [
 				{
@@ -1285,18 +1241,17 @@ module.exports = {
 						break;
 				}
 			},
-		};
+		};*/
 
-		//Created 11/8/2023 by Cody Luketic
+		/*//Created 11/8/2023 by Cody Luketic
 		actions.resource_settings_textweb = {
 			name: 'Resource Settings Text And Web',
 			options: [
 				{
-					type: 'dropdown',
+					type: 'textinput',
 					label: 'Resource',
 					id: 'resource_settings_textweb_resource',
-					default: 0,
-					choices: self.CHOICES_RESOURCENAME,
+					default: 'Media/Standard Content/Filename.mov',
 				},
 				{
 					type: 'dropdown',
@@ -1723,7 +1678,7 @@ module.exports = {
 						break;
 				}
 			},
-		};
+		};*/
 
 		//Updated 11/14/2023 by Cody Luketic
 		actions.resource_folder_settings = {
@@ -3796,12 +3751,15 @@ module.exports = {
 					self.TIMELINE_CREATE_CUE_CUEOPERATION = parseInt(
 						opt.timeline_create_cue_operation
 					);
-					if (event.options.timeline_create_cue_timeline == -1) {
+
+					if (parseInt(event.options.timeline_create_cue_timeline) == -1) {
 						for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
+					console.log('debug', self.SELECTEDTIMELINES[i])
+
 							self.pixera.sendParams(
 								34,
 								'Pixera.Timelines.Timeline.getCurrentTime',
-								{ handle: self.SELECTEDTIMELINES[i] }
+								{ handle: parseInt(self.SELECTEDTIMELINES[i]) }
 							);
 						}
 					} else {
@@ -3841,6 +3799,7 @@ module.exports = {
 						min * 60 * parseInt(fps) +
 						sec * parseInt(fps) +
 						frame;
+					console.log('debug', event.options.timeline_create_cue_timeline)
 					if (event.options.timeline_create_cue_timeline == -1) {
 						for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
 							{
