@@ -211,7 +211,7 @@ module.exports = {
 					_id = 33;
 					method = 'Pixera.Timelines.Timeline.getCueNext';
 					let blendDuration = parseInt(
-						await self.parseVariablesInString(opt.blend_name_frames)
+						await self.parseVariablesInString(event.options.blend_name_frames)
 					);
 					self.CHOICES_BLENDNAME_FRAMES = blendDuration;
 				}
@@ -273,7 +273,7 @@ module.exports = {
 					_id = 33;
 					method = 'Pixera.Timelines.Timeline.getCuePrevious';
 					let blendDuration = parseInt(
-						await self.parseVariablesInString(opt.blend_name_frames)
+						await self.parseVariablesInString(event.options.blend_name_frames)
 					);
 					self.CHOICES_BLENDNAME_FRAMES = blendDuration;
 				}
@@ -3512,6 +3512,9 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
+				let val = parseInt(
+					await self.parseVariablesInString(opt.timeline_scrubcurrenttime_frames)
+				);
 				if (event.options.timeline_scrubcurrenttime_timeline == -1) {
 					for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
 						self.pixera.sendParams(
@@ -3519,7 +3522,7 @@ module.exports = {
 							'Pixera.Timelines.Timeline.scrubCurrentTime',
 							{
 								handle: self.SELECTEDTIMELINES[i],
-								frames: parseInt(opt.timeline_scrubcurrenttime_frames),
+								frames: val,
 							}
 						);
 					}
@@ -3529,7 +3532,7 @@ module.exports = {
 						'Pixera.Timelines.Timeline.scrubCurrentTime',
 						{
 							handle: parseInt(opt.timeline_scrubcurrenttime_timeline),
-							frames: parseInt(opt.timeline_scrubcurrenttime_frames),
+							frames: val,
 						}
 					);
 				}
@@ -3556,6 +3559,9 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
+				let val = parseFloat(
+					await self.parseVariablesInString(opt.timeline_zoomfactor_factor)
+				);
 				if (event.options.timeline_zoomfactor_timeline == -1) {
 					for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
 						self.pixera.sendParams(
@@ -3563,14 +3569,14 @@ module.exports = {
 							'Pixera.Timelines.Timeline.setZoomFactor',
 							{
 								handle: self.SELECTEDTIMELINES[i],
-								zoomFactor: parseFloat(opt.timeline_zoomfactor_factor),
+								zoomFactor: val,
 							}
 						);
 					}
 				} else {
 					self.pixera.sendParams(0, 'Pixera.Timelines.Timeline.setZoomFactor', {
 						handle: parseInt(opt.timeline_zoomfactor_timeline),
-						zoomFactor: parseFloat(opt.timeline_zoomfactor_factor),
+						zoomFactor: val,
 					});
 				}
 			},
