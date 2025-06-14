@@ -1166,16 +1166,14 @@ module.exports = {
 			},
 		};
 
-		//Created 11/8/2023 by Cody Luketic
-		/*actions.resource_settings_general = {
+		actions.resource_settings_general = {
 			name: 'Resource Settings General',
 			options: [
 				{
-					type: 'dropdown',
-					label: 'Resource',
+					type: 'textinput',
+					label: 'Resource Path or Handle',
 					id: 'resource_settings_general_resource',
-					default: 0,
-					choices: self.CHOICES_RESOURCENAME,
+					default: 'Media/Standard Content/tunnel_HD_h264.mp4',
 				},
 				{
 					type: 'dropdown',
@@ -1213,11 +1211,12 @@ module.exports = {
 			callback: async (event) => {
 				let opt = event.options;
 				let id = opt.resource_settings_general_action;
-
+				let hdl = await self.parseVariablesInString(opt.resource_settings_general_resource);
+				let hdlNumber = isNaN(parseInt(hdl)) ? hdl : parseInt(hdl);
 				switch (id) {
 					case 1:
 						self.pixera.sendParams(0, 'Pixera.Resources.Resource.setName', {
-							handle: parseInt(opt.resource_settings_general_resource),
+							handle: hdlNumber,
 							name: opt.resource_settings_general_name,
 						});
 						break;
@@ -1226,14 +1225,14 @@ module.exports = {
 							0,
 							'Pixera.Resources.Resource.setCurrentVersion',
 							{
-								handle: parseInt(opt.resource_settings_general_resource),
+								handle: hdlNumber,
 								version: opt.resource_settings_general_version,
 							}
 						);
 						break;
 					case 3:
 						self.pixera.sendParams(0, 'Pixera.Resources.Resource.setDmxId', {
-							handle: parseInt(opt.resource_settings_general_resource),
+							handle: hdlNumber,
 							id: parseInt(opt.resource_settings_general_dmxid),
 						});
 						break;
@@ -1241,17 +1240,16 @@ module.exports = {
 						break;
 				}
 			},
-		};*/
+		};
 
-		/*//Created 11/8/2023 by Cody Luketic
 		actions.resource_settings_textweb = {
 			name: 'Resource Settings Text And Web',
 			options: [
 				{
 					type: 'textinput',
-					label: 'Resource',
+					label: 'Resource Path or Handle',
 					id: 'resource_settings_textweb_resource',
-					default: 'Media/Standard Content/Filename.mov',
+					default: 'Media/Unnamed Text',
 				},
 				{
 					type: 'dropdown',
@@ -1323,20 +1321,25 @@ module.exports = {
 			callback: async (event) => {
 				let opt = event.options;
 				let id = opt.resource_settings_textweb_action;
+				let hdl = await self.parseVariablesInString(opt.resource_settings_textweb_resource);
+				let hdlNumber = isNaN(parseInt(hdl)) ? hdl : parseInt(hdl);
 
 				switch (id) {
 					case 1:
-						self.pixera.sendParams(0, 'Pixera.Resources.Resource.setText', {
-							handle: parseInt(opt.resource_settings_textweb_resource),
-							text: opt.resource_settings_textweb_text,
-						});
+						{
+							let txt = await self.parseVariablesInString(opt.resource_settings_textweb_text);
+							self.pixera.sendParams(0, 'Pixera.Resources.Resource.setText', {
+								handle: hdlNumber,
+								text: txt,
+							});
+						}
 						break;
 					case 2:
 						self.pixera.sendParams(
 							0,
 							'Pixera.Resources.Resource.setFontWithName',
 							{
-								handle: parseInt(opt.resource_settings_textweb_resource),
+								handle: hdlNumber,
 								fontName: opt.resource_settings_textweb_fontname,
 							}
 						);
@@ -1346,7 +1349,7 @@ module.exports = {
 							0,
 							'Pixera.Resources.Resource.setHorizontalTextAlignment',
 							{
-								handle: parseInt(opt.resource_settings_textweb_resource),
+								handle: hdlNumber,
 								textAlignment: parseInt(
 									opt.resource_settings_textweb_horizontaltextalignment
 								),
@@ -1358,7 +1361,7 @@ module.exports = {
 							0,
 							'Pixera.Resources.Resource.setVerticalTextAlignment',
 							{
-								handle: parseInt(opt.resource_settings_textweb_resource),
+								handle: hdlNumber,
 								textAlignment: parseInt(
 									opt.resource_settings_textweb_verticaltextalignment
 								),
@@ -1370,7 +1373,7 @@ module.exports = {
 							0,
 							'Pixera.Resources.Resource.setLineHeight',
 							{
-								handle: parseInt(opt.resource_settings_textweb_resource),
+								handle: hdlNumber,
 								lineHeight: parseFloat(
 									opt.resource_settings_textweb_lineheight
 								),
@@ -1379,7 +1382,7 @@ module.exports = {
 						break;
 					case 6:
 						self.pixera.sendParams(0, 'Pixera.Resources.Resource.setUrl', {
-							handle: parseInt(opt.resource_settings_textweb_resource),
+							handle: hdlNumber,
 							url: opt.resource_settings_textweb_url,
 						});
 						break;
@@ -1389,7 +1392,7 @@ module.exports = {
 			},
 		};
 
-		//Created 11/8/2023 by Cody Luketic
+		/*//Created 11/8/2023 by Cody Luketic
 		actions.resource_settings_color = {
 			name: 'Resource Settings Color',
 			options: [
