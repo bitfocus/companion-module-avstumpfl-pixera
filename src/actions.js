@@ -4224,11 +4224,12 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
+				let tempApiCmd = await self.parseVariablesInString(opt.api_methode);
 				try {
-					let apiCmd = JSON.parse(opt.api_methode);
+					let apiCmd = JSON.parse(tempApiCmd);
 					self.pixera.sendParams(9999, apiCmd['method'], apiCmd['params']);
 				} catch {
-					self.log('error', 'Can not parse json in API call.');
+					self.log('error', 'Can not parse json in API call: ' + tempApiCmd);
 					return;
 				}
 			},
