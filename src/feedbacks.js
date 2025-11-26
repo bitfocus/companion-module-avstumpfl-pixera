@@ -3,6 +3,7 @@ module.exports = {
 	initFeedbacks() {
 		
 		let self = this;
+		const formatTwoDigits = (value) => (value < 10 ? '0' : '') + value.toString();
 		//self.log('debug', 'init feedbacks');
 		let feedbacks = {
 			timeline_state:{
@@ -113,22 +114,22 @@ module.exports = {
 							let frames = Math.floor(time - ((((hours * 60) * 60) * fps) + ((minutes * 60) * fps) + (seconds * fps)));
 							if(feedback.options.show_label == 1){
 								return {
-									text: hours.toString()
+									text: formatTwoDigits(hours)
 								}
 							}
 							else if(feedback.options.show_label == 2){
 								return {
-									text: minutes.toString()
+									text: formatTwoDigits(minutes)
 								}
 							}
 							else if(feedback.options.show_label == 3){
 								return {
-									text: seconds.toString()
+									text: formatTwoDigits(seconds)
 								}
 							}
 							else if(feedback.options.show_label == 4){
 								return {
-									text: frames.toString()
+									text: formatTwoDigits(frames)
 								}
 							}
 						}
@@ -168,24 +169,27 @@ module.exports = {
 							let minutes = Math.floor(time / (60 * fps)-(hours * 60));
 							let seconds = Math.floor(((time / (60 * fps))*60)-(((hours * 60) * 60) + (minutes * 60)));
 							let frames = Math.floor(time - ((((hours * 60) * 60) * fps) + ((minutes * 60) * fps) + (seconds * fps)));
+							
+							
+							
 							if(feedback.options.show_label == 1){
 								return {
-									text: hours.toString()
+									text: formatTwoDigits(hours)
 								}
 							}
 							else if(feedback.options.show_label == 2){
 								return {
-									text: minutes.toString()
+									text: formatTwoDigits(minutes)
 								}
 							}
 							else if(feedback.options.show_label == 3){
 								return {
-									text: seconds.toString()
+									text: formatTwoDigits(seconds)
 								}
 							}
 							else if(feedback.options.show_label == 4){
 								return {
-									text: frames.toString()
+									text: formatTwoDigits(frames)
 								}
 							}
 						}
