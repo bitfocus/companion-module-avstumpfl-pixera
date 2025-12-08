@@ -135,6 +135,21 @@ class Pixera {
 			});
 		}
 	}
+	getFormattedTime(frames, fps) {
+		if (fps === 0) return '00:00:00:00';
+		let time = frames;
+		let hours = Math.floor(time / (60 * (60 * fps)));
+		let minutes = Math.floor(time / (60 * fps) - hours * 60);
+		let seconds = Math.floor(
+			(time / (60 * fps)) * 60 - (hours * 60 * 60 + minutes * 60)
+		);
+		let frame = Math.floor(
+			time - (hours * 60 * 60 * fps + minutes * 60 * fps + seconds * fps)
+		);
+
+		const pad = (num) => num.toString().padStart(2, '0');
+		return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}:${pad(frame)}`;
+	}
 	destroy() {
 		let self = this.instance;
 		clearInterval(self.retry_interval);
@@ -334,6 +349,7 @@ class Pixera {
 							});
 						}
 						self.updateActions();
+						self.updateVariables();
 					}
 					break;
 				case 12: //get timeline attributes
@@ -365,6 +381,7 @@ class Pixera {
 							}
 						}
 						self.updateActions();
+						self.updateVariables();
 					}
 					break;
 				case 13: //Pixera.Screens.getScreens
@@ -936,6 +953,14 @@ class Pixera {
 												self.CHOICES_TIMELINEFEEDBACK[t]['timelineTransport'] =
 													timelineTransport[b]['value'];
 												self.checkFeedbacks('timeline_state');
+												let name = self.CHOICES_TIMELINEFEEDBACK[t]['name'];
+												if (name && name !== '0') {
+													let safeName = name.replace(/[^a-zA-Z0-9-_]/g, '_');
+													let state = 'Stop';
+													if (timelineTransport[b]['value'] == 1) state = 'Play';
+													else if (timelineTransport[b]['value'] == 2) state = 'Pause';
+													self.setVariableValues({ [`timeline_${safeName}_transport`]: state });
+												}
 												//self.log('debug', 'transport:',self.CHOICES_TIMELINEFEEDBACK);
 											}
 										}
@@ -956,6 +981,16 @@ class Pixera {
 												self.CHOICES_TIMELINEFEEDBACK[t]['timelinePositions'] =
 													timelinePositions[b]['value'];
 												self.checkFeedbacks('timeline_positions');
+												let name = self.CHOICES_TIMELINEFEEDBACK[t]['name'];
+												let fps = self.CHOICES_TIMELINEFEEDBACK[t]['fps'];
+												if (name && name !== '0') {
+													let safeName = name.replace(/[^a-zA-Z0-9-_]/g, '_');
+													let timecode = this.getFormattedTime(
+														timelinePositions[b]['value'],
+														fps
+													);
+													self.setVariableValues({ [`timeline_${safeName}_time`]: timecode });
+												}
 												//self.log('debug', 'positions:',self.CHOICES_TIMELINEFEEDBACK);
 											}
 										}
@@ -976,6 +1011,16 @@ class Pixera {
 												self.CHOICES_TIMELINEFEEDBACK[t]['timelineCountdowns'] =
 													timelineCountdowns[b]['value'];
 												self.checkFeedbacks('timeline_countdowns');
+												let name = self.CHOICES_TIMELINEFEEDBACK[t]['name'];
+												let fps = self.CHOICES_TIMELINEFEEDBACK[t]['fps'];
+												if (name && name !== '0') {
+													let safeName = name.replace(/[^a-zA-Z0-9-_]/g, '_');
+													let timecode = this.getFormattedTime(
+														timelineCountdowns[b]['value'],
+														fps
+													);
+													self.setVariableValues({ [`timeline_${safeName}_countdown`]: timecode });
+												}
 												//self.log('debug', 'countdowns:',self.CHOICES_TIMELINEFEEDBACK);
 											}
 										}
