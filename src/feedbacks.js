@@ -3,7 +3,7 @@ module.exports = {
 	initFeedbacks() {
 		
 		let self = this;
-		const formatTwoDigits = (value) => (value < 10 ? '0' : '') + value.toString();
+		const formatTwoDigits = (value) => return ((value < 10 ? '0' : '') + value.toString());
 		//self.log('debug', 'init feedbacks');
 		let feedbacks = {
 			timeline_state:{
