@@ -112,6 +112,18 @@ module.exports = {
 							let minutes = Math.floor(time / (60 * fps)-(hours * 60));
 							let seconds = Math.floor(((time / (60 * fps))*60)-(((hours * 60) * 60) + (minutes * 60)));
 							let frames = Math.floor(time - ((((hours * 60) * 60) * fps) + ((minutes * 60) * fps) + (seconds * fps)));
+                            
+                            this.setVariableValues({
+                                timecode_s_pad: formatTwoDigits(seconds),
+                                timecode_s: seconds,
+                                timecode_m_pad: formatTwoDigits(minutes),
+                                timecode_m: minutes,
+                                timecode_h_pad: formatTwoDigits(hours),
+                                timecode_h: hours,
+                                timecode_f_pad: formatTwoDigits(frames),
+                                timecode_f: frames,
+                            })
+                            
 							if(feedback.options.show_label == 1){
 								return {
 									text: formatTwoDigits(hours)
@@ -170,8 +182,17 @@ module.exports = {
 							let seconds = Math.floor(((time / (60 * fps))*60)-(((hours * 60) * 60) + (minutes * 60)));
 							let frames = Math.floor(time - ((((hours * 60) * 60) * fps) + ((minutes * 60) * fps) + (seconds * fps)));
 							
-							
-							
+                            this.setVariableValues({
+                                countdown_s_pad: formatTwoDigits(seconds),
+                                countdown_s: seconds,
+                                countdown_m_pad: formatTwoDigits(minutes),
+                                countdown_m: minutes,
+                                countdown_h_pad: formatTwoDigits(hours),
+                                countdown_h: hours,
+                                countdown_f_pad: formatTwoDigits(frames),
+                                countdown_f: frames,
+                            })
+                            
 							if(feedback.options.show_label == 1){
 								return {
 									text: formatTwoDigits(hours)
