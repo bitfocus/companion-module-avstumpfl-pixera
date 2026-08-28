@@ -11,7 +11,7 @@
 		"url": "git+https://github.com/bitfocus/companion-module-avstumpfl-pixera.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.1.1",
+		"@companion-module/base": "~1.4.3",
 		"lodash": "~4.18.1",
 		"xml2js": "~0.5.0"
 	},
