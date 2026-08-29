@@ -222,7 +222,7 @@ class Pixera {
 		let self = this.instance;
 		this.pool();
 		for (let i = 0; i < self.CHOICES_LIVESYSTEMHANDLE.length; i++) {
-			this.sendParams(60, 'Pixera.LiveSystems.LiveSystem.getState', {
+			this.sendParams(61, 'Pixera.LiveSystems.LiveSystem.getState', {
 				handle: self.CHOICES_LIVESYSTEMHANDLE[i],
 			});
 		}
@@ -406,7 +406,7 @@ class Pixera {
 								this.sendParams(16, 'Pixera.LiveSystems.LiveSystem.getName', {
 									handle: result[i],
 								});
-								this.sendParams(60, 'Pixera.LiveSystems.LiveSystem.getState', {
+								this.sendParams(61, 'Pixera.LiveSystems.LiveSystem.getState', {
 									handle: result[i],
 								});
 							}
@@ -534,16 +534,6 @@ class Pixera {
 									state: !result,
 								}
 							);
-						}
-					}
-					break;
-				case 60: //Pixera.LiveSystems.LiveSystem.getState
-					{
-						let result = jsonData.result;
-						let handle = jsonData.context ? jsonData.context.handle : null;
-						if (handle != null) {
-							self.LIVESYSTEM_STATE[handle] = result;
-							self.checkFeedbacks('livesystem_state');
 						}
 					}
 					break;
@@ -909,6 +899,16 @@ class Pixera {
 					this.sendParams(0, 'Pixera.Resources.Resource.distribute', {
 						handle: parseInt(jsonData.result),
 					});
+					break;
+				case 61: //Pixera.LiveSystems.LiveSystem.getState
+					{
+						let result = jsonData.result;
+						let handle = jsonData.context ? jsonData.context.handle : null;
+						if (handle != null) {
+							self.LIVESYSTEM_STATE[handle] = result;
+							self.checkFeedbacks('livesystem_state');
+						}
+					}
 					break;
 
 
