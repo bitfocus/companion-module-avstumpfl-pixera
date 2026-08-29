@@ -234,7 +234,13 @@ module.exports = {
 			],
 			callback: function(feedback, bank) {
 				let state = self.LIVESYSTEM_STATE[feedback.options.livesystem_state_name];
-				let connected = typeof state === 'string' && state.toLowerCase().indexOf('connected') !== -1;
+				// normalize: lowercase, strip non-letters ("Not Connected" -> "notconnected")
+				let normalized = typeof state === 'string' ? state.toLowerCase().replace(/[^a-z]/g, '') : '';
+				let connected =
+					normalized === 'connected' ||
+					(normalized.indexOf('connected') !== -1 &&
+						normalized.indexOf('notconnected') === -1 &&
+						normalized.indexOf('disconnected') === -1);
 				if (connected) {
 					return {
 						color: feedback.options.connected_fg,
