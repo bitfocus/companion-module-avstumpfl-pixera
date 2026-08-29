@@ -425,6 +425,9 @@ class Pixera {
 							self.INDEX_LIVESYSTEM += 1;
 						}
 						self.updateActions();
+						// re-register feedbacks so dropdowns in the UI pick up the discovered names
+						// (feedback definitions are captured at connect, before live systems are known)
+						self.initFeedbacks();
 					}
 					break;
 				case 17: //Pixera.Screens.getStudioCameras
