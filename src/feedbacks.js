@@ -234,13 +234,14 @@ module.exports = {
 			],
 			callback: function(feedback, bank) {
 				let state = self.LIVESYSTEM_STATE[feedback.options.livesystem_state_name];
-				// normalize: lowercase, strip non-letters ("Not Connected" -> "notconnected")
+				// normalize: lowercase, strip non-letters ("Engine Closed" -> "engineclosed")
 				let normalized = typeof state === 'string' ? state.toLowerCase().replace(/[^a-z]/g, '') : '';
+				// api rev 481 reports "Engine Opened"/"Engine Closed"; other revisions use Connected/NotConnected
+				let offline = ['engineclosed','notconnected','disconnected','notavailable','offline','closed'];
+				let online = ['engineopened','connected','opened','online','running'];
 				let connected =
-					normalized === 'connected' ||
-					(normalized.indexOf('connected') !== -1 &&
-						normalized.indexOf('notconnected') === -1 &&
-						normalized.indexOf('disconnected') === -1);
+					!offline.some((m) => normalized.indexOf(m) !== -1) &&
+					online.some((m) => normalized.indexOf(m) !== -1);
 				if (connected) {
 					return {
 						color: feedback.options.connected_fg,
