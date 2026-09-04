@@ -31,6 +31,7 @@ Nativ implementation using Pixera JSON/TCP Api
 * Button Color Timeline State
 * Button Text Timeline Timecode
 * Button Text Timeline Remain
+* Button Color Live System State (requires polling to be enabled)
 
 ** Response
 * API Commands returns Handles if available

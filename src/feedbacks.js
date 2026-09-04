@@ -195,8 +195,68 @@ module.exports = {
 						}
 					}
 				}//close callback
-			},//close timeline positions
-		};//close feedbacks
+		},//close timeline positions
+		livesystem_state:{
+			type: 'advanced',
+			name: 'Change color from Live System State',
+			options: [
+			{
+				type: 'dropdown',
+				label: 'Live System',
+				id: 'livesystem_state_name',
+				default: 0,
+				choices: self.CHOICES_LIVESYSTEMNAME
+			},
+			{
+				type: 'colorpicker',
+				label: 'Connected: Foreground color',
+				id: 'connected_fg',
+				default: combineRgb(255,255,255)
+			},
+			{
+				type: 'colorpicker',
+				label: 'Connected: Background color',
+				id: 'connected_bg',
+				default: combineRgb(0,200,0)
+			},
+			{
+				type: 'colorpicker',
+				label: 'Not Connected: Foreground color',
+				id: 'disconnected_fg',
+				default: combineRgb(255,255,255)
+			},
+			{
+				type: 'colorpicker',
+				label: 'Not Connected: Background color',
+				id: 'disconnected_bg',
+				default: combineRgb(200,0,0)
+			}
+			],
+			callback: function(feedback, bank) {
+				let state = self.LIVESYSTEM_STATE[feedback.options.livesystem_state_name];
+				// normalize: lowercase, strip non-letters ("Engine Closed" -> "engineclosed")
+				let normalized = typeof state === 'string' ? state.toLowerCase().replace(/[^a-z]/g, '') : '';
+				// api rev 481 reports "Engine Opened"/"Engine Closed"; other revisions use Connected/NotConnected
+				let offline = ['engineclosed','notconnected','disconnected','notavailable','offline','closed'];
+				let online = ['engineopened','connected','opened','online','running'];
+				let connected =
+					!offline.some((m) => normalized.indexOf(m) !== -1) &&
+					online.some((m) => normalized.indexOf(m) !== -1);
+				if (connected) {
+					return {
+						color: feedback.options.connected_fg,
+						bgcolor: feedback.options.connected_bg
+					}
+				}
+				else {
+					return {
+						color: feedback.options.disconnected_fg,
+						bgcolor: feedback.options.disconnected_bg
+					}
+				}
+			}//close callback
+		},//close livesystem state
+	};//close feedbacks
 		self.setFeedbackDefinitions(feedbacks);
 	}
 }

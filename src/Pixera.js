@@ -221,6 +221,11 @@ class Pixera {
 	retry() {
 		let self = this.instance;
 		this.pool();
+		for (let i = 0; i < self.CHOICES_LIVESYSTEMHANDLE.length; i++) {
+			this.sendParams(61, 'Pixera.LiveSystems.LiveSystem.getState', {
+				handle: self.CHOICES_LIVESYSTEMHANDLE[i],
+			});
+		}
 	}
 	initLiveSystems() {
 		let self = this.instance;
@@ -260,6 +265,7 @@ class Pixera {
 
 		self.CHOICES_LIVESYSTEMNAME = [{ label: '', id: 0 }];
 		self.CHOICES_LIVESYSTEMHANDLE = '';
+		self.LIVESYSTEM_STATE = {};
 		self.CHOICES_OUTPUTNAME = [{ label: '', id: 0 }];
 		self.CHOICES_OUTPUTHANDLE = [];
 		self.CHOICES_STUDIOCAMERANAME = [{ label: '', id: 0 }];
@@ -400,6 +406,9 @@ class Pixera {
 								this.sendParams(16, 'Pixera.LiveSystems.LiveSystem.getName', {
 									handle: result[i],
 								});
+								this.sendParams(61, 'Pixera.LiveSystems.LiveSystem.getState', {
+									handle: result[i],
+								});
 							}
 						}
 						self.updateActions();
@@ -416,6 +425,9 @@ class Pixera {
 							self.INDEX_LIVESYSTEM += 1;
 						}
 						self.updateActions();
+						// re-register feedbacks so dropdowns in the UI pick up the discovered names
+						// (feedback definitions are captured at connect, before live systems are known)
+						self.initFeedbacks();
 					}
 					break;
 				case 17: //Pixera.Screens.getStudioCameras
@@ -890,6 +902,16 @@ class Pixera {
 					this.sendParams(0, 'Pixera.Resources.Resource.distribute', {
 						handle: parseInt(jsonData.result),
 					});
+					break;
+				case 61: //Pixera.LiveSystems.LiveSystem.getState
+					{
+						let result = jsonData.result;
+						let handle = jsonData.context ? jsonData.context.handle : null;
+						if (handle != null) {
+							self.LIVESYSTEM_STATE[handle] = result;
+							self.checkFeedbacks('livesystem_state');
+						}
+					}
 					break;
 
 

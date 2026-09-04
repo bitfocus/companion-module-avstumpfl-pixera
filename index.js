@@ -22,6 +22,7 @@ class PixeraInstance extends InstanceBase {
 		//action variables
 		self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
 		self.CHOICES_LIVESYSTEMHANDLE = '';
+		self.LIVESYSTEM_STATE = {};
 		self.CHOICES_OUTPUTNAME = [{label: '',id:0}]
 		self.CHOICES_OUTPUTHANDLE = [];
 		self.CHOICES_STUDIOCAMERANAME = [{label: '',id:0}];
