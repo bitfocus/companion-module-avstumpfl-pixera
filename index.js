@@ -23,6 +23,7 @@ class PixeraInstance extends InstanceBase {
 		self.CHOICES_LIVESYSTEMNAME = [{label: '',id:0}]
 		self.CHOICES_LIVESYSTEMHANDLE = '';
 		self.LIVESYSTEM_STATE = {};
+		self.PIXERA_LINK_UP = false;
 		self.CHOICES_OUTPUTNAME = [{label: '',id:0}]
 		self.CHOICES_OUTPUTHANDLE = [];
 		self.CHOICES_STUDIOCAMERANAME = [{label: '',id:0}];
@@ -61,6 +62,9 @@ class PixeraInstance extends InstanceBase {
 			self.pixera.destroy();
 		}
 
+		self.PIXERA_LINK_UP = false;
+		self.LIVESYSTEM_STATE = {};
+
 		if(config){
 			self.config = config;
 		}
@@ -68,7 +72,7 @@ class PixeraInstance extends InstanceBase {
 			self.pixera = new Pixera(self,self.config);
 			// Update the actions
 			self.updateActions();
-			self.updateStatus(InstanceStatus.Ok);
+			self.updateStatus(InstanceStatus.Connecting);
 		}
 		else{
 			self.updateStatus(InstanceStatus.BadConfig,'Missing required values.');

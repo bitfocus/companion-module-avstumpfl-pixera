@@ -233,6 +233,13 @@ module.exports = {
 			}
 			],
 			callback: function(feedback, bank) {
+				// a dead socket means we have no idea what the engine is doing, so never report connected
+				if (self.PIXERA_LINK_UP !== true) {
+					return {
+						color: feedback.options.disconnected_fg,
+						bgcolor: feedback.options.disconnected_bg
+					}
+				}
 				let state = self.LIVESYSTEM_STATE[feedback.options.livesystem_state_name];
 				// normalize: lowercase, strip non-letters ("Engine Closed" -> "engineclosed")
 				let normalized = typeof state === 'string' ? state.toLowerCase().replace(/[^a-z]/g, '') : '';

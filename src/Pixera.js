@@ -1,7 +1,12 @@
-const { instanceStatus, TCPHelper } = require('@companion-module/base');
+const { InstanceStatus, TCPHelper } = require('@companion-module/base');
 const { debug } = require('console');
 const { forEach } = require('lodash');
 const { isIP } = require('net');
+
+// how often the watchdog checks the link, and how long without any reply before
+// we treat the socket as dead (a killed Pixera can leave the TCP session half-open)
+const WATCHDOG_INTERVAL = 2000;
+const RX_TIMEOUT = 8000;
 
 class Pixera {
 	constructor(instance, config) {
@@ -9,69 +14,47 @@ class Pixera {
 		let self = instance;
 		//buffer for receive stream
 		if (isIP(config.host) !== 4) {
-			self.log('error', self.config + ' is not a valid IP');
+			self.log('error', config.host + ' is not a valid IP');
 			return;
 		}
+		this.config = config;
+		this.createSocket();
+		this.watchdog = setInterval(this.checkLink.bind(this), WATCHDOG_INTERVAL);
+	}
+	createSocket() {
+		let self = this.instance;
+		let config = this.config;
 		if (config.host) {
-			this.socket = new TCPHelper(config.host, config.port);
+			this.lastRx = Date.now();
+			this.socket = new TCPHelper(config.host, config.port, {
+				reconnect: true,
+				reconnect_interval: 2000,
+			});
 			this.socket.on('status_change', function (status, message) {
 				self.updateStatus(status, message);
 			});
 
 			this.socket.on('disconnect', function (err) {
 				self.log('error', 'Network error: ' + err.message);
-				clearInterval(self.retry_interval);
-				clearInterval(self.getSelectedTimelines);
-			});
+				this.markLinkDown('disconnected');
+			}.bind(this));
 
 			this.socket.on('error', function (err) {
 				self.log('error', 'Network error: ' + err.message);
-				clearInterval(self.retry_interval);
-				clearInterval(self.getSelectedTimelines);
-			});
+				this.markLinkDown('socket error');
+			}.bind(this));
 
 			this.socket.on('close', function () {
 				self.log('debug', 'Close Connection.');
-				clearInterval(self.retry_interval);
-				clearInterval(self.getSelectedTimelines);
-			});
+				this.markLinkDown('connection closed');
+			}.bind(this));
 			this.socket.on('connect', () => {
-				self.log('info', 'Pixera Connected');
-				//use version to filter commands
-				this.send(1, 'Pixera.Utility.getApiRevision');
-				//send message to get reply
-				this.sendParams(99, 'Pixera.Utility.setShowContextInReplies', {
-					doShow: true,
-				});
-				self.initFeedbacks();
-				this.initVariables();
-				this.initLiveSystems();
-				this.initOutputs();
-				this.initStudioCameras();
-				this.initProjectors();
-				//don't get resources because it take to long
-				//this.initResources();
-				this.initResourceFolders();
-				/*this.initTranscodingFolders();*/
-				this.initTimelines();
-				this.initScreens();
-				if (self.config.polling) {
-					//self.log('debug',config.polling_rate);
-					self.retry_interval = setInterval(
-						this.retry.bind(this),
-						config.polling_rate
-					); //ms for pool timelinestate
-					this.retry();
-				}
-				self.getSelectedTimelines = setInterval(
-					this.getSelectedTimeline.bind(this),
-					100
-				); //ms for pool selected Timelines
-				this.getSelectedTimeline();
+				this.onConnected();
 			});
 			let currentLength = 0;
 			let splittetMessage = '';
 			this.socket.on('data', (chunk) => {
+				this.lastRx = Date.now();
 				//const header = 'pxr1';
 				const header = [112, 120, 114, 49];
 				let messageLength = 0;
@@ -139,10 +122,95 @@ class Pixera {
 		let self = this.instance;
 		clearInterval(self.retry_interval);
 		clearInterval(self.getSelectedTimelines);
+		clearInterval(this.watchdog);
 		if (this.socket) {
 			this.socket.destroy();
 			delete this.socket;
 		}
+	}
+	onConnected() {
+		let self = this.instance;
+		let config = this.config;
+		self.log('info', 'Pixera Connected');
+		// guard against a connect without an intervening close leaving orphaned timers
+		clearInterval(self.retry_interval);
+		clearInterval(self.getSelectedTimelines);
+		self.PIXERA_LINK_UP = true;
+		this.lastRx = Date.now();
+		self.updateStatus(InstanceStatus.Ok);
+		//use version to filter commands
+		this.send(1, 'Pixera.Utility.getApiRevision');
+		//send message to get reply
+		this.sendParams(99, 'Pixera.Utility.setShowContextInReplies', {
+			doShow: true,
+		});
+		self.initFeedbacks();
+		this.initVariables();
+		this.initLiveSystems();
+		this.initOutputs();
+		this.initStudioCameras();
+		this.initProjectors();
+		//don't get resources because it take to long
+		//this.initResources();
+		this.initResourceFolders();
+		/*this.initTranscodingFolders();*/
+		this.initTimelines();
+		this.initScreens();
+		if (self.config.polling) {
+			//self.log('debug',config.polling_rate);
+			self.retry_interval = setInterval(
+				this.retry.bind(this),
+				config.polling_rate
+			); //ms for pool timelinestate
+			this.retry();
+		}
+		self.getSelectedTimelines = setInterval(
+			this.getSelectedTimeline.bind(this),
+			100
+		); //ms for pool selected Timelines
+		this.getSelectedTimeline();
+	}
+	markLinkDown(reason) {
+		let self = this.instance;
+		clearInterval(self.retry_interval);
+		clearInterval(self.getSelectedTimelines);
+		if (self.PIXERA_LINK_UP === false) {
+			return;
+		}
+		self.PIXERA_LINK_UP = false;
+		// drop cached engine state so feedbacks can't keep reporting a dead system as connected
+		self.LIVESYSTEM_STATE = {};
+		self.updateStatus(InstanceStatus.Disconnected, reason);
+		self.checkFeedbacks('livesystem_state');
+	}
+	checkLink() {
+		let self = this.instance;
+		if (!this.socket || !this.socket.isConnected) {
+			// TCPHelper does not reliably emit close/error when the engine goes away,
+			// so the socket's own flag is the only trustworthy signal here
+			this.markLinkDown('not connected');
+			return;
+		}
+		if (Date.now() - this.lastRx > RX_TIMEOUT) {
+			self.log(
+				'error',
+				'No reply from Pixera for ' +
+					RX_TIMEOUT +
+					'ms, rebuilding connection'
+			);
+			this.markLinkDown('no reply from Pixera');
+			this.rebuildSocket();
+			return;
+		}
+		// keeps traffic flowing so lastRx stays meaningful even when polling is off
+		this.send(1, 'Pixera.Utility.getApiRevision');
+	}
+	rebuildSocket() {
+		if (this.socket) {
+			this.socket.destroy();
+			delete this.socket;
+		}
+		this.createSocket();
 	}
 	generateCommand(id, method, params) {
 		let self = this.instance;
