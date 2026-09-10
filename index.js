@@ -1,9 +1,9 @@
-const { InstanceBase, InstanceStatus, runEntrypoint, TCPHelper } = require('@companion-module/base')
+import { InstanceBase, InstanceStatus } from '@companion-module/base'
 
-const Pixera = require('./src/Pixera')
-const config = require('./src/config')
-const actions = require('./src/actions')
-const feedbacks = require('./src/feedbacks')
+import Pixera from './src/Pixera.js'
+import config from './src/config.js'
+import actions from './src/actions.js'
+import feedbacks from './src/feedbacks.js'
 
 class PixeraInstance extends InstanceBase {
 		constructor(internal) {
@@ -73,5 +73,13 @@ class PixeraInstance extends InstanceBase {
 			self.updateStatus(InstanceStatus.BadConfig,'Missing required values.');
 		}
 	}
+
+	async destroy() {
+		let self = this;
+		if (self.pixera) {
+			self.pixera.destroy();
+			delete self.pixera;
+		}
+	}
 }
-runEntrypoint(PixeraInstance, [])
+export default PixeraInstance

@@ -1,6 +1,4 @@
-const { InstanceStatus } = require('@companion-module/base');
-const { forEach } = require('lodash');
-module.exports = {
+export default {
 	updateActions() {
 		let self = this;
 		let actions = {};
@@ -88,6 +86,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Type',
 					id: 'timeline_transport_type',
+					disableAutoExpression: true,
 					default: 2,
 					choices: [
 						{ label: 'Multiple', id: 2 },
@@ -98,7 +97,7 @@ module.exports = {
 					type: 'textinput',
 					label: 'Timeline Names',
 					id: 'timeline_transport_timelines',
-					isVisible: (options) => options.timeline_transport_type == 2,
+					isVisibleExpression: '$(options:timeline_transport_type) == 2',
 					default: 'Timeline 1,Timeline 2,Timeline 3',
 				},
 			],
@@ -183,21 +182,23 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Ignore Properties',
 					id: 'timelinename_next_ignore',
-					isVisible: (options) => options.timelinename_next_blend == false,
+					disableAutoExpression: true,
+					isVisibleExpression: '$(options:timelinename_next_blend) == false',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Blend To',
 					id: 'timelinename_next_blend',
-					isVisible: (options) => options.timelinename_next_ignore == false,
+					disableAutoExpression: true,
+					isVisibleExpression: '$(options:timelinename_next_ignore) == false',
 					default: false,
 				},
 				{
 					type: 'textinput',
 					label: 'Blendtime in Frames',
 					id: 'blend_name_frames',
-					isVisible: (options) => options.timelinename_next_blend == true,
+					isVisibleExpression: '$(options:timelinename_next_blend) == true',
 					default: 60.0,
 					regex: self.REGEX_FLOAT,
 				},
@@ -210,9 +211,7 @@ module.exports = {
 				} else if (event.options.timelinename_next_blend) {
 					_id = 33;
 					method = 'Pixera.Timelines.Timeline.getCueNext';
-					let blendDuration = parseInt(
-						await self.parseVariablesInString(event.options.blend_name_frames)
-					);
+					let blendDuration = parseInt(event.options.blend_name_frames);
 					self.CHOICES_BLENDNAME_FRAMES = blendDuration;
 				}
 				if (event.options.timelinename_next == -1) {
@@ -243,21 +242,23 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Ignore Properties',
 					id: 'timelinename_prev_ignore',
-					isVisible: (options) => options.timelinename_prev_blend == false,
+					disableAutoExpression: true,
+					isVisibleExpression: '$(options:timelinename_prev_blend) == false',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Blend To',
 					id: 'timelinename_prev_blend',
-					isVisible: (options) => options.timelinename_prev_ignore == false,
+					disableAutoExpression: true,
+					isVisibleExpression: '$(options:timelinename_prev_ignore) == false',
 					default: false,
 				},
 				{
 					type: 'textinput',
 					label: 'Blendtime in Frames',
 					id: 'blend_name_frames',
-					isVisible: (options) => options.timelinename_prev_blend == true,
+					isVisibleExpression: '$(options:timelinename_prev_blend) == true',
 					default: 60.0,
 					regex: self.REGEX_FLOAT,
 				},
@@ -272,9 +273,7 @@ module.exports = {
 				} else if (event.options.timelinename_prev_blend) {
 					_id = 33;
 					method = 'Pixera.Timelines.Timeline.getCuePrevious';
-					let blendDuration = parseInt(
-						await self.parseVariablesInString(event.options.blend_name_frames)
-					);
+					let blendDuration = parseInt(event.options.blend_name_frames);
 					self.CHOICES_BLENDNAME_FRAMES = blendDuration;
 				}
 				if (event.options.timelinename_prev == -1) {
@@ -359,6 +358,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'session_project_action',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Save', id: 1 },
@@ -371,16 +371,14 @@ module.exports = {
 					type: 'textinput',
 					label: 'Project Path',
 					id: 'session_project_projectpath',
-					isVisible: (options) =>
-						options.session_project_action == 2 ||
-						options.session_project_action == 3,
+					isVisibleExpression: '$(options:session_project_action) == 2 || $(options:session_project_action) == 3',
 					default: 'C:\\Dump',
 				},
 				{
 					type: 'checkbox',
 					label: 'Save Project',
 					id: 'session_project_saveproject',
-					isVisible: (options) => options.session_project_action == 4,
+					isVisibleExpression: '$(options:session_project_action) == 4',
 					default: true,
 				},
 			],
@@ -420,13 +418,14 @@ module.exports = {
 					type: 'checkbox',
 					label: 'All Live Systems',
 					id: 'session_livesystem_all',
+					disableAutoExpression: true,
 					default: false,
 				},
 				{
 					type: 'textinput',
 					label: 'IP',
 					id: 'session_livesystem_ip',
-					isVisible: (options) => options.session_livesystem_all == 0,
+					isVisibleExpression: '$(options:session_livesystem_all) == 0',
 					default: '127.0.0.1',
 				},
 				{
@@ -524,6 +523,7 @@ module.exports = {
 					type: 'checkbox',
 					label: 'All Live Systems',
 					id: 'livesystem_engine_all',
+					disableAutoExpression: true,
 					default: false,
 				},
 				{
@@ -531,14 +531,14 @@ module.exports = {
 					label: 'Live System',
 					id: 'livesystem_engine_livesystem',
 					default: 0,
-					isVisible: (options) => options.livesystem_engine_all == 0,
+					isVisibleExpression: '$(options:livesystem_engine_all) == 0',
 					choices: self.CHOICES_LIVESYSTEMNAME,
 				},
 				{
 					type: 'checkbox',
 					label: 'Exclude Local',
 					id: 'livesystem_engine_local',
-					isVisible: (options) => options.livesystem_engine_all == 1,
+					isVisibleExpression: '$(options:livesystem_engine_all) == 1',
 					default: true,
 				},
 				{
@@ -784,14 +784,14 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Make Toggle',
 					id: 'livesystem_setaudiomaster_mute_toggle',
+					disableAutoExpression: true,
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Mute',
 					id: 'livesystem_setaudiomaster_mute_state',
-					isVisible: (options) =>
-						options.livesystem_setaudiomaster_mute_toggle == 0,
+					isVisibleExpression: '$(options:livesystem_setaudiomaster_mute_toggle) == 0',
 					default: false,
 				},
 			],
@@ -799,12 +799,8 @@ module.exports = {
 				let opt = event.options;
 
 				if (opt.livesystem_setaudiomaster_mute_toggle) {
-					self.LIVESYSTEM_SETAUDIOMASTER_MUTE_LIVESYSTEM = parseInt(
-						opt.livesystem_setaudiomaster_mute_livesystem
-					);
-					self.LIVESYSTEM_SETAUDIOMASTER_MUTE_CHANNEL = parseInt(
-						opt.livesystem_setaudiomaster_mute_channel
-					);
+					self.LIVESYSTEM_SETAUDIOMASTER_MUTE_LIVESYSTEM = parseInt(opt.livesystem_setaudiomaster_mute_livesystem);
+					self.LIVESYSTEM_SETAUDIOMASTER_MUTE_CHANNEL = parseInt(opt.livesystem_setaudiomaster_mute_channel);
 
 					self.pixera.sendParams(
 						24,
@@ -882,65 +878,65 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Active: Make Toggle',
 					id: 'output_status_active_toggle',
+					disableAutoExpression: true,
 					default: true,
 				},
 				{
 					type: 'checkbox',
 					label: 'Active',
 					id: 'output_status_active',
-					isVisible: (options) => options.output_status_active_toggle == 0,
+					isVisibleExpression: '$(options:output_status_active_toggle) == 0',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Identify: Make Toggle',
 					id: 'output_status_identify_toggle',
+					disableAutoExpression: true,
 					default: true,
 				},
 				{
 					type: 'checkbox',
 					label: 'Identify',
 					id: 'output_status_identify',
-					isVisible: (options) => options.output_status_identify_toggle == 0,
+					isVisibleExpression: '$(options:output_status_identify_toggle) == 0',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Is Output Aggregate: Make Toggle',
 					id: 'output_status_isoutputaggregate_toggle',
+					disableAutoExpression: true,
 					default: true,
 				},
 				{
 					type: 'checkbox',
 					label: 'Is Output Aggregate',
 					id: 'output_status_isoutputaggregate',
-					isVisible: (options) =>
-						options.output_status_isoutputaggregate_toggle == 0,
+					disableAutoExpression: true,
+					isVisibleExpression: '$(options:output_status_isoutputaggregate_toggle) == 0',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Set Aggregate Dimensions',
 					id: 'output_status_aggregateddimensions',
-					isVisible: (options) =>
-						options.output_status_isoutputaggregate_toggle == 1 ||
-						options.output_status_isoutputaggregate == 1,
+					disableAutoExpression: true,
+					isVisibleExpression: '$(options:output_status_isoutputaggregate_toggle) == 1 || $(options:output_status_isoutputaggregate) == 1',
 					default: false,
 				},
 				{
 					type: 'textinput',
 					label: 'Horizontal Count',
 					id: 'output_status_aggregatedimensions_horizontalcount',
-					isVisible: (options) =>
-						options.output_status_aggregatedimensions == 1,
+					isVisibleExpression: '$(options:output_status_aggregateddimensions) == 1',
 					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Vertical Count',
 					id: 'output_status_aggregatedimensions_verticalcount',
-					isVisible: (options) =>
-						options.output_status_aggregatedimensions == 1,
+					isVisibleExpression: '$(options:output_status_aggregateddimensions) == 1',
 					default: '1',
 				},
 			],
@@ -995,12 +991,8 @@ module.exports = {
 						'Pixera.LiveSystems.Output.setAggregateDims',
 						{
 							handle: parseInt(opt.output_status_output),
-							horizontalCount: parseInt(
-								opt.output_status_aggregatedimensions_horizontalcount
-							),
-							verticalCount: parseInt(
-								opt.output_status_aggregatedimensions_verticalcount
-							),
+							horizontalCount: parseInt(opt.output_status_aggregatedimensions_horizontalcount),
+							verticalCount: parseInt(opt.output_status_aggregatedimensions_verticalcount),
 						}
 					);
 				}
@@ -1016,6 +1008,7 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Object Type',
 					id: 'output_assignment_type',
+					disableAutoExpression: true,
 					default: 1,
 					choices:[
 						{label: 'Screen', id: 1},
@@ -1026,7 +1019,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Screen',
 					id: 'output_assignment_screen',
-					isVisible: (options) => options.output_assignment_type == 1,
+					isVisibleExpression: '$(options:output_assignment_type) == 1',
 					default: 0,
 					choices: self.CHOICES_SCREENNAME
 				},*/
@@ -1080,6 +1073,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_system_action',
+					disableAutoExpression: true,
 					default: 6,
 					choices: [
 						{ label: 'Remove This', id: 1 },
@@ -1098,9 +1092,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Livesystem',
 					id: 'resource_system_livesystem',
-					isVisible: (options) =>
-						options.resource_system_action == 4 ||
-						options.resource_system_action == 9,
+					isVisibleExpression: '$(options:resource_system_action) == 4 || $(options:resource_system_action) == 9',
 					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME,
 				},
@@ -1108,21 +1100,21 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Should Distribute',
 					id: 'resource_system_shoulddistribute',
-					isVisible: (options) => options.resource_system_action == 9,
+					isVisibleExpression: '$(options:resource_system_action) == 9',
 					default: false,
 				},
 				{
 					type: 'textinput',
 					label: 'File Path',
 					id: 'resource_system_filepath',
-					isVisible: (options) => options.resource_system_action == 5,
+					isVisibleExpression: '$(options:resource_system_action) == 5',
 					default: 'C:\\Dump',
 				} /*,
 				{
 					type: 'textinput',
 					label: 'Folder Path',
 					id: 'resource_system_folderpath',
-					isVisible: (options) => options.resource_system_action == 7,
+					isVisibleExpression: '$(options:resource_system_action) == 7',
 					default: 'C:\\Dump',
 				},*/,
 			],
@@ -1179,6 +1171,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_settings_general_action',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Set Name', id: 1 },
@@ -1190,28 +1183,28 @@ module.exports = {
 					type: 'textinput',
 					label: 'Name',
 					id: 'resource_settings_general_name',
-					isVisible: (options) => options.resource_settings_general_action == 1,
+					isVisibleExpression: '$(options:resource_settings_general_action) == 1',
 					default: 'Resource 1',
 				},
 				{
 					type: 'textinput',
 					label: 'Version',
 					id: 'resource_settings_general_version',
-					isVisible: (options) => options.resource_settings_general_action == 2,
+					isVisibleExpression: '$(options:resource_settings_general_action) == 2',
 					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Dmx Id',
 					id: 'resource_settings_general_dmxid',
-					isVisible: (options) => options.resource_settings_general_action == 3,
+					isVisibleExpression: '$(options:resource_settings_general_action) == 3',
 					default: '1',
 				},
 			],
 			callback: async (event) => {
 				let opt = event.options;
 				let id = opt.resource_settings_general_action;
-				let hdl = await self.parseVariablesInString(opt.resource_settings_general_resource);
+				let hdl = opt.resource_settings_general_resource;
 				let hdlNumber = isNaN(parseInt(hdl)) ? hdl : parseInt(hdl);
 				switch (id) {
 					case 1:
@@ -1255,6 +1248,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_settings_textweb_action',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Set Text', id: 1 },
@@ -1269,21 +1263,21 @@ module.exports = {
 					type: 'textinput',
 					label: 'Text',
 					id: 'resource_settings_textweb_text',
-					isVisible: (options) => options.resource_settings_textweb_action == 1,
+					isVisibleExpression: '$(options:resource_settings_textweb_action) == 1',
 					default: 'This is a Text Resource',
 				},
 				{
 					type: 'textinput',
 					label: 'Font Name',
 					id: 'resource_settings_textweb_fontname',
-					isVisible: (options) => options.resource_settings_textweb_action == 2,
+					isVisibleExpression: '$(options:resource_settings_textweb_action) == 2',
 					default: 'Arial',
 				},
 				{
 					type: 'dropdown',
 					label: 'Horizontal Text Alignment',
 					id: 'resource_settings_textweb_horizontaltextalignment',
-					isVisible: (options) => options.resource_settings_textweb_action == 3,
+					isVisibleExpression: '$(options:resource_settings_textweb_action) == 3',
 					default: 0,
 					choices: [
 						{ label: 'Align Left', id: 0 },
@@ -1295,7 +1289,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Vertical Text Alignment',
 					id: 'resource_settings_textweb_verticaltextalignment',
-					isVisible: (options) => options.resource_settings_textweb_action == 4,
+					isVisibleExpression: '$(options:resource_settings_textweb_action) == 4',
 					default: 0,
 					choices: [
 						{ label: 'Align Top', id: 0 },
@@ -1307,27 +1301,27 @@ module.exports = {
 					type: 'textinput',
 					label: 'Line Height',
 					id: 'resource_settings_textweb_lineheight',
-					isVisible: (options) => options.resource_settings_textweb_action == 5,
+					isVisibleExpression: '$(options:resource_settings_textweb_action) == 5',
 					default: '550.0',
 				},
 				{
 					type: 'textinput',
 					label: 'URL',
 					id: 'resource_settings_textweb_url',
-					isVisible: (options) => options.resource_settings_textweb_action == 6,
+					isVisibleExpression: '$(options:resource_settings_textweb_action) == 6',
 					default: 'www.pixera.one',
 				},
 			],
 			callback: async (event) => {
 				let opt = event.options;
 				let id = opt.resource_settings_textweb_action;
-				let hdl = await self.parseVariablesInString(opt.resource_settings_textweb_resource);
+				let hdl = opt.resource_settings_textweb_resource;
 				let hdlNumber = isNaN(parseInt(hdl)) ? hdl : parseInt(hdl);
 
 				switch (id) {
 					case 1:
 						{
-							let txt = await self.parseVariablesInString(opt.resource_settings_textweb_text);
+							let txt = opt.resource_settings_textweb_text;
 							self.pixera.sendParams(0, 'Pixera.Resources.Resource.setText', {
 								handle: hdlNumber,
 								text: txt,
@@ -1350,9 +1344,7 @@ module.exports = {
 							'Pixera.Resources.Resource.setHorizontalTextAlignment',
 							{
 								handle: hdlNumber,
-								textAlignment: parseInt(
-									opt.resource_settings_textweb_horizontaltextalignment
-								),
+								textAlignment: parseInt(opt.resource_settings_textweb_horizontaltextalignment),
 							}
 						);
 						break;
@@ -1362,9 +1354,7 @@ module.exports = {
 							'Pixera.Resources.Resource.setVerticalTextAlignment',
 							{
 								handle: hdlNumber,
-								textAlignment: parseInt(
-									opt.resource_settings_textweb_verticaltextalignment
-								),
+								textAlignment: parseInt(opt.resource_settings_textweb_verticaltextalignment),
 							}
 						);
 						break;
@@ -1374,9 +1364,7 @@ module.exports = {
 							'Pixera.Resources.Resource.setLineHeight',
 							{
 								handle: hdlNumber,
-								lineHeight: parseFloat(
-									opt.resource_settings_textweb_lineheight
-								),
+								lineHeight: parseFloat(opt.resource_settings_textweb_lineheight),
 							}
 						);
 						break;
@@ -1407,6 +1395,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_settings_color_action',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Set Use Gradient', id: 1 },
@@ -1417,66 +1406,64 @@ module.exports = {
 					type: 'textinput',
 					label: 'Index',
 					id: 'resource_settings_color_index',
-					isVisible: (options) => options.resource_settings_color_action == 2,
+					isVisibleExpression: '$(options:resource_settings_color_action) == 2',
 					default: '255',
 				},
 				{
 					type: 'textinput',
 					label: 'Red Value (0-255)',
 					id: 'resource_settings_color_red',
-					isVisible: (options) => options.resource_settings_color_action == 2,
+					isVisibleExpression: '$(options:resource_settings_color_action) == 2',
 					default: '255',
 				},
 				{
 					type: 'textinput',
 					label: 'Green Value (0-255)',
 					id: 'resource_settings_color_green',
-					isVisible: (options) => options.resource_settings_color_action == 2,
+					isVisibleExpression: '$(options:resource_settings_color_action) == 2',
 					default: '255',
 				},
 				{
 					type: 'textinput',
 					label: 'Blue Value (0-255)',
 					id: 'resource_settings_color_blue',
-					isVisible: (options) => options.resource_settings_color_action == 2,
+					isVisibleExpression: '$(options:resource_settings_color_action) == 2',
 					default: '255',
 				},
 				{
 					type: 'textinput',
 					label: 'Alpha Value (0-255)',
 					id: 'resource_settings_color_alpha',
-					isVisible: (options) => options.resource_settings_color_action == 2,
+					isVisibleExpression: '$(options:resource_settings_color_action) == 2',
 					default: '255',
 				},
 				{
 					type: 'textinput',
 					label: 'Position',
 					id: 'resource_settings_color_position',
-					isVisible: (options) => options.resource_settings_color_action == 2,
+					isVisibleExpression: '$(options:resource_settings_color_action) == 2',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Color Name',
 					id: 'resource_settings_color_colorname',
-					isVisible: (options) => options.resource_settings_color_action == 2,
+					isVisibleExpression: '$(options:resource_settings_color_action) == 2',
 					default: 'Color 1',
 				},
 				{
 					type: 'checkbox',
 					label: 'Use Gradient: Make Toggle',
 					id: 'resource_settings_color_gradient_toggle',
-					isVisible: (options) => options.resource_settings_color_action == 1,
+					disableAutoExpression: true,
+					isVisibleExpression: '$(options:resource_settings_color_action) == 1',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Use Gradient',
 					id: 'resource_settings_color_gradient',
-					isVisible: (options) =>
-						(options.resource_settings_color_action == 1 &&
-							options.resource_settings_color_gradient_toggle == false) ||
-						options.resource_settings_color_action == 2,
+					isVisibleExpression: '($(options:resource_settings_color_action) == 1 && $(options:resource_settings_color_gradient_toggle) == false) || $(options:resource_settings_color_action) == 2',
 					default: false,
 				},
 			],
@@ -1543,6 +1530,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_multiresource_action',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Add Multiresource Item', id: 1 },
@@ -1557,52 +1545,42 @@ module.exports = {
 					type: 'textinput',
 					label: 'Index',
 					id: 'resource_multiresource_index',
-					isVisible: (options) =>
-						options.resource_multiresource_action == 2 ||
-						options.resource_multiresource_action == 3 ||
-						options.resource_multiresource_action == 5 ||
-						options.resource_multiresource_action == 6,
+					isVisibleExpression: '$(options:resource_multiresource_action) == 2 || $(options:resource_multiresource_action) == 3 || $(options:resource_multiresource_action) == 5 || $(options:resource_multiresource_action) == 6',
 					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Id',
 					id: 'resource_multiresource_id',
-					isVisible: (options) =>
-						options.resource_multiresource_action == 1 ||
-						options.resource_multiresource_action == 3,
+					isVisibleExpression: '$(options:resource_multiresource_action) == 1 || $(options:resource_multiresource_action) == 3',
 					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Width',
 					id: 'resource_multiresource_width',
-					isVisible: (options) =>
-						options.resource_multiresource_action == 4 ||
-						options.resource_multiresource_action == 5,
+					isVisibleExpression: '$(options:resource_multiresource_action) == 4 || $(options:resource_multiresource_action) == 5',
 					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Height',
 					id: 'resource_multiresource_height',
-					isVisible: (options) =>
-						options.resource_multiresource_action == 4 ||
-						options.resource_multiresource_action == 5,
+					isVisibleExpression: '$(options:resource_multiresource_action) == 4 || $(options:resource_multiresource_action) == 5',
 					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Position X',
 					id: 'resource_multiresource_posx',
-					isVisible: (options) => options.resource_multiresource_action == 6,
+					isVisibleExpression: '$(options:resource_multiresource_action) == 6',
 					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Y',
 					id: 'resource_multiresource_posy',
-					isVisible: (options) => options.resource_multiresource_action == 6,
+					isVisibleExpression: '$(options:resource_multiresource_action) == 6',
 					default: '1',
 				},
 			],
@@ -1698,6 +1676,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_folder_settings_action',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Set Name', id: 1 },
@@ -1710,21 +1689,21 @@ module.exports = {
 					type: 'textinput',
 					label: 'Name',
 					id: 'resource_folder_settings_name',
-					isVisible: (options) => options.resource_folder_settings_action == 1,
+					isVisibleExpression: '$(options:resource_folder_settings_action) == 1',
 					default: 'Resource 1',
 				},
 				{
 					type: 'textinput',
 					label: 'Dmx Id',
 					id: 'resource_folder_settings_dmxid',
-					isVisible: (options) => options.resource_folder_settings_action == 2,
+					isVisibleExpression: '$(options:resource_folder_settings_action) == 2',
 					default: '1',
 				},
 				{
 					type: 'dropdown',
 					label: 'Livesystem',
 					id: 'resource_folder_settings_livesystem',
-					isVisible: (options) => options.resource_folder_settings_action == 3,
+					isVisibleExpression: '$(options:resource_folder_settings_action) == 3',
 					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME,
 				},
@@ -1732,7 +1711,7 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Should Distribute',
 					id: 'resource_folder_settings_distribute',
-					isVisible: (options) => options.resource_folder_settings_action == 3,
+					isVisibleExpression: '$(options:resource_folder_settings_action) == 3',
 					default: false,
 				},
 			],
@@ -1767,9 +1746,7 @@ module.exports = {
 							'Pixera.Resources.ResourceFolder.changeDistributionTarget',
 							{
 								handle: parseInt(opt.resource_folder_settings_resourcefolder),
-								apEntityLiveSystemHandle: parseInt(
-									opt.resource_folder_settings_livesystem
-								),
+								apEntityLiveSystemHandle: parseInt(opt.resource_folder_settings_livesystem),
 								shouldDistribute: opt.resource_folder_settings_distribute,
 							}
 						);
@@ -1802,6 +1779,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_folder_content_action',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Create Folders From Path', id: 1 },
@@ -1818,21 +1796,21 @@ module.exports = {
 					type: 'textinput',
 					label: 'Folder Path',
 					id: 'resource_folder_content_path',
-					isVisible: (options) => options.resource_folder_content_action == 1,
+					isVisibleExpression: '$(options:resource_folder_content_action) == 1',
 					default: 'Other\\Videos',
 				} /*
 				{
 					type: 'textinput',
 					label: 'Resource Id',
 					id: 'resource_folder_content_resourceid',
-					isVisible: (options) => options.resource_folder_content_action == 4,
+					isVisibleExpression: '$(options:resource_folder_content_action) == 4',
 					default: '1.0',
 				},*/,
 				{
 					type: 'dropdown',
 					label: 'Livesystem',
 					id: 'resource_folder_content_livesystem',
-					isVisible: (options) => options.resource_folder_content_action == 8,
+					isVisibleExpression: '$(options:resource_folder_content_action) == 8',
 					default: 0,
 					choices: self.CHOICES_LIVESYSTEMNAME,
 				},
@@ -1898,9 +1876,7 @@ module.exports = {
 							'Pixera.Resources.ResourceFolder.deleteAllContentsAssetsFromLiveSystem',
 							{
 								handle: parseInt(opt.resource_folder_content_resourcefolder),
-								apEntityLiveSystemHandle: parseInt(
-									opt.resource_folder_content_livesystem
-								),
+								apEntityLiveSystemHandle: parseInt(opt.resource_folder_content_livesystem),
 							}
 						);
 						break;
@@ -1925,6 +1901,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Action',
 					id: 'resource_folder_transcode_action',
+					disableAutoExpression: true,
 					default: 1,
 					choices:[
 						{label: 'Set Used Transcoding Preset', id: 1},
@@ -1937,28 +1914,28 @@ module.exports = {
 					type: 'textinput',
 					label: 'Preset',
 					id: 'resource_folder_transcode_preset',
-					isVisible: (options) => options.resource_folder_transcode_action == 1,
+					isVisibleExpression: '$(options:resource_folder_transcode_action) == 1',
 					default: '',
 				},
 				{
 					type: 'checkbox',
 					label: 'Transcode Automatically',
 					id: 'resource_folder_transcode_automatic',
-					isVisible: (options) => options.resource_folder_transcode_action == 2,
+					isVisibleExpression: '$(options:resource_folder_transcode_action) == 2',
 					default: '1',
 				},
 				{
 					type: 'checkbox',
 					label: 'Set RX Cache as the Destination',
 					id: 'resource_folder_transcode_rx',
-					isVisible: (options) => options.resource_folder_transcode_action == 3,
+					isVisibleExpression: '$(options:resource_folder_transcode_action) == 3',
 					default: '1',
 				},
 				{
 					type: 'textinput',
 					label: 'Path',
 					id: 'resource_folder_transcode_path',
-					isVisible: (options) => options.resource_folder_transcode_action == 4,
+					isVisibleExpression: '$(options:resource_folder_transcode_action) == 4',
 				}
 			],
 			callback: async (event) => {
@@ -2008,6 +1985,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Type',
 					id: 'screen_transform_type',
+					disableAutoExpression: true,
 					default: 5,
 					choices: [
 						{ label: 'Position', id: 1 },
@@ -2021,87 +1999,63 @@ module.exports = {
 					type: 'textinput',
 					label: 'Position X',
 					id: 'screen_transform_position_x',
-					isVisible: (options) =>
-						options.screen_transform_type == 1 ||
-						options.screen_transform_type == 4 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 1 || $(options:screen_transform_type) == 4 || $(options:screen_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Y',
 					id: 'screen_transform_position_y',
-					isVisible: (options) =>
-						options.screen_transform_type == 1 ||
-						options.screen_transform_type == 4 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 1 || $(options:screen_transform_type) == 4 || $(options:screen_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Z',
 					id: 'screen_transform_position_z',
-					isVisible: (options) =>
-						options.screen_transform_type == 1 ||
-						options.screen_transform_type == 4 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 1 || $(options:screen_transform_type) == 4 || $(options:screen_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation X',
 					id: 'screen_transform_rotation_x',
-					isVisible: (options) =>
-						options.screen_transform_type == 2 ||
-						options.screen_transform_type == 4 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 2 || $(options:screen_transform_type) == 4 || $(options:screen_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Y',
 					id: 'screen_transform_rotation_y',
-					isVisible: (options) =>
-						options.screen_transform_type == 2 ||
-						options.screen_transform_type == 4 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 2 || $(options:screen_transform_type) == 4 || $(options:screen_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Z',
 					id: 'screen_transform_rotation_z',
-					isVisible: (options) =>
-						options.screen_transform_type == 2 ||
-						options.screen_transform_type == 4 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 2 || $(options:screen_transform_type) == 4 || $(options:screen_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Scale X',
 					id: 'screen_transform_scale_x',
-					isVisible: (options) =>
-						options.screen_transform_type == 3 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 3 || $(options:screen_transform_type) == 5',
 					default: '1.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Scale Y',
 					id: 'screen_transform_scale_y',
-					isVisible: (options) =>
-						options.screen_transform_type == 3 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 3 || $(options:screen_transform_type) == 5',
 					default: '1.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Scale Z',
 					id: 'screen_transform_scale_z',
-					isVisible: (options) =>
-						options.screen_transform_type == 3 ||
-						options.screen_transform_type == 5,
+					isVisibleExpression: '$(options:screen_transform_type) == 3 || $(options:screen_transform_type) == 5',
 					default: '1.0',
 				},
 			],
@@ -2179,6 +2133,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Type',
 					id: 'screen_perspective_transform_type',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Position', id: 1 },
@@ -2191,80 +2146,70 @@ module.exports = {
 					type: 'textinput',
 					label: 'Position X',
 					id: 'screen_perspective_transform_position_x',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 1,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 1',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Y',
 					id: 'screen_perspective_transform_position_y',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 1,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 1',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Z',
 					id: 'screen_perspective_transform_position_z',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 1,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 1',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Look at X',
 					id: 'screen_perspective_transform_positionlookat_x',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 2,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 2',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Look at Y',
 					id: 'screen_perspective_transform_positionlookat_y',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 2,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 2',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Look at Z',
 					id: 'screen_perspective_transform_positionlookat_z',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 2,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 2',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation X',
 					id: 'screen_perspective_transform_rotation_x',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 3,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Y',
 					id: 'screen_perspective_transform_rotation_y',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 3,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Z',
 					id: 'screen_perspective_transform_rotation_z',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 3,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Mode',
 					id: 'screen_perspective_transform_mode',
-					isVisible: (options) =>
-						options.screen_perspective_transform_type == 4,
+					isVisibleExpression: '$(options:screen_perspective_transform_type) == 4',
 					default: '0.0',
 				},
 			],
@@ -2290,15 +2235,9 @@ module.exports = {
 							'Pixera.Screens.Screen.setPerspectivePositionWithLookAt',
 							{
 								handle: parseInt(opt.screen_perspective_transform_screen),
-								xPos: parseFloat(
-									opt.screen_perspective_transform_positionlookat_x
-								),
-								yPos: parseFloat(
-									opt.screen_perspective_transform_positionlookat_y
-								),
-								zPos: parseFloat(
-									opt.screen_perspective_transform_positionlookat_z
-								),
+								xPos: parseFloat(opt.screen_perspective_transform_positionlookat_x),
+								yPos: parseFloat(opt.screen_perspective_transform_positionlookat_y),
+								zPos: parseFloat(opt.screen_perspective_transform_positionlookat_z),
 							}
 						);
 						break;
@@ -2345,6 +2284,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Type',
 					id: 'screen_camera_transform_type',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Position', id: 1 },
@@ -2356,63 +2296,63 @@ module.exports = {
 					type: 'textinput',
 					label: 'Position X',
 					id: 'screen_camera_transform_position_x',
-					isVisible: (options) => options.screen_camera_transform_type == 1,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 1',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Y',
 					id: 'screen_camera_transform_position_y',
-					isVisible: (options) => options.screen_camera_transform_type == 1,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 1',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Z',
 					id: 'screen_camera_transform_position_z',
-					isVisible: (options) => options.screen_camera_transform_type == 1,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 1',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Look at X',
 					id: 'screen_camera_transform_positionlookat_x',
-					isVisible: (options) => options.screen_camera_transform_type == 2,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 2',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Look at Y',
 					id: 'screen_camera_transform_positionlookat_y',
-					isVisible: (options) => options.screen_camera_transform_type == 2,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 2',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Look at Z',
 					id: 'screen_camera_transform_positionlookat_z',
-					isVisible: (options) => options.screen_camera_transform_type == 2,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 2',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation X',
 					id: 'screen_camera_transform_rotation_x',
-					isVisible: (options) => options.screen_camera_transform_type == 3,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Y',
 					id: 'screen_camera_transform_rotation_y',
-					isVisible: (options) => options.screen_camera_transform_type == 3,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Z',
 					id: 'screen_camera_transform_rotation_z',
-					isVisible: (options) => options.screen_camera_transform_type == 3,
+					isVisibleExpression: '$(options:screen_camera_transform_type) == 3',
 					default: '0.0',
 				},
 			],
@@ -2477,6 +2417,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Type',
 					id: 'screen_studiocamera_transform_type',
+					disableAutoExpression: true,
 					default: 1,
 					choices: [
 						{ label: 'Position', id: 1 },
@@ -2490,208 +2431,168 @@ module.exports = {
 					type: 'textinput',
 					label: 'Position X',
 					id: 'screen_studiocamera_transform_position_x',
-					isVisible: (options) =>
-						options.screen_studiocamera_transform_type == 1 ||
-						options.screen_studiocamera_transform_type == 3 ||
-						options.screen_studiocamera_transform_type == 4 ||
-						options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 1 || $(options:screen_studiocamera_transform_type) == 3 || $(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Y',
 					id: 'screen_studiocamera_transform_position_y',
-					isVisible: (options) =>
-						options.screen_studiocamera_transform_type == 1 ||
-						options.screen_studiocamera_transform_type == 3 ||
-						options.screen_studiocamera_transform_type == 4 ||
-						options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 1 || $(options:screen_studiocamera_transform_type) == 3 || $(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Z',
 					id: 'screen_studiocamera_transform_position_z',
-					isVisible: (options) =>
-						options.screen_studiocamera_transform_type == 1 ||
-						options.screen_studiocamera_transform_type == 3 ||
-						options.screen_studiocamera_transform_type == 4 ||
-						options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 1 || $(options:screen_studiocamera_transform_type) == 3 || $(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation X',
 					id: 'screen_studiocamera_transform_rotation_x',
-					isVisible: (options) =>
-						options.screen_studiocamera_transform_type == 2 ||
-						options.screen_studiocamera_transform_type == 3 ||
-						options.screen_studiocamera_transform_type == 4 ||
-						options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 2 || $(options:screen_studiocamera_transform_type) == 3 || $(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Y',
 					id: 'screen_studiocamera_transform_rotation_y',
-					isVisible: (options) =>
-						options.screen_studiocamera_transform_type == 2 ||
-						options.screen_studiocamera_transform_type == 3 ||
-						options.screen_studiocamera_transform_type == 4 ||
-						options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 2 || $(options:screen_studiocamera_transform_type) == 3 || $(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Z',
 					id: 'screen_studiocamera_transform_rotation_z',
-					isVisible: (options) =>
-						options.screen_studiocamera_transform_type == 2 ||
-						options.screen_studiocamera_transform_type == 3 ||
-						options.screen_studiocamera_transform_type == 4 ||
-						options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 2 || $(options:screen_studiocamera_transform_type) == 3 || $(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'FOV',
 					id: 'screen_studiocamera_transform_fov',
-					isVisible: (options) =>
-						options.screen_studiocamera_transform_type == 3 ||
-						options.screen_studiocamera_transform_type == 4 ||
-						options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 3 || $(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Aspect Ratio',
 					id: 'screen_studiocamera_transform_aspectratio',
-					isVisible: (options) =>
-						options.screen_studiocamera_transform_type == 3 ||
-						options.screen_studiocamera_transform_type == 4 ||
-						options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 3 || $(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				} /*,
 				{
 					type: 'textinput',
 					label: 'Near Clip',
 					id: 'screen_studiocamera_transform_nearclip',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Far Clip',
 					id: 'screen_studiocamera_transform_farclip',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Aperture',
 					id: 'screen_studiocamera_transform_aperture',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Focus',
 					id: 'screen_studiocamera_transform_focus',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Focal Distance',
 					id: 'screen_studiocamera_transform_focaldistance',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Zoom',
 					id: 'screen_studiocamera_transform_zoom',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Iris',
 					id: 'screen_studiocamera_transform_iris',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'K1',
 					id: 'screen_studiocamera_transform_k1',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'K2',
 					id: 'screen_studiocamera_transform_k2',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'K3',
 					id: 'screen_studiocamera_transform_k3',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'P1',
 					id: 'screen_studiocamera_transform_p1',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'P2',
 					id: 'screen_studiocamera_transform_p2',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Center X',
 					id: 'screen_studiocamera_transform_centerx',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Center Y',
 					id: 'screen_studiocamera_transform_centery',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Panel Width',
 					id: 'screen_studiocamera_transform_panelwidth',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 4
-						|| options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 4 || $(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Overscan',
 					id: 'screen_studiocamera_transform_overscan',
-					isVisible: (options) => options.screen_studiocamera_transform_type == 5,
+					isVisibleExpression: '$(options:screen_studiocamera_transform_type) == 5',
 					default: '0.0',
 				}
 				*/,
@@ -2705,9 +2606,7 @@ module.exports = {
 							0,
 							'Pixera.Screens.StudioCamera.setPosition',
 							{
-								handle: parseInt(
-									opt.screen_studiocamera_transform_studiocamera
-								),
+								handle: parseInt(opt.screen_studiocamera_transform_studiocamera),
 								xPos: parseFloat(opt.screen_studiocamera_transform_position_x),
 								yPos: parseFloat(opt.screen_studiocamera_transform_position_y),
 								zPos: parseFloat(opt.screen_studiocamera_transform_position_z),
@@ -2719,9 +2618,7 @@ module.exports = {
 							0,
 							'Pixera.Screens.StudioCamera.setRotation',
 							{
-								handle: parseInt(
-									opt.screen_studiocamera_transform_studiocamera
-								),
+								handle: parseInt(opt.screen_studiocamera_transform_studiocamera),
 								xRot: parseFloat(opt.screen_studiocamera_transform_rotation_x),
 								yRot: parseFloat(opt.screen_studiocamera_transform_rotation_y),
 								zRot: parseFloat(opt.screen_studiocamera_transform_rotation_z),
@@ -2733,9 +2630,7 @@ module.exports = {
 							0,
 							'Pixera.Screens.StudioCamera.setTransformation',
 							{
-								handle: parseInt(
-									opt.screen_studiocamera_transform_studiocamera
-								),
+								handle: parseInt(opt.screen_studiocamera_transform_studiocamera),
 								xPos: parseFloat(opt.screen_studiocamera_transform_position_x),
 								yPos: parseFloat(opt.screen_studiocamera_transform_position_y),
 								zPos: parseFloat(opt.screen_studiocamera_transform_position_z),
@@ -2743,9 +2638,7 @@ module.exports = {
 								yRot: parseFloat(opt.screen_studiocamera_transform_rotation_y),
 								zRot: parseFloat(opt.screen_studiocamera_transform_rotation_z),
 								fov: parseFloat(opt.screen_studiocamera_transform_fov),
-								aspectRatio: parseFloat(
-									opt.screen_studiocamera_transform_aspectratio
-								),
+								aspectRatio: parseFloat(opt.screen_studiocamera_transform_aspectratio),
 							}
 						);
 						break;
@@ -2822,44 +2715,42 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Pause Tracking Input: Make Toggle',
 					id: 'screen_studiocamera_tracking_trackinginputpause_toggle',
+					disableAutoExpression: true,
 					default: true,
 				},
 				{
 					type: 'checkbox',
 					label: 'Pause Tracking Input',
 					id: 'screen_studiocamera_tracking_trackinginputpause',
-					isVisible: (options) =>
-						options.screen_studiocamera_tracking_trackinginputpause_toggle == 0,
+					isVisibleExpression: '$(options:screen_studiocamera_tracking_trackinginputpause_toggle) == 0',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Use Position Properties From Tracking: Make Toggle',
 					id: 'screen_studiocamera_tracking_positionfromtracking_toggle',
+					disableAutoExpression: true,
 					default: true,
 				},
 				{
 					type: 'checkbox',
 					label: 'Use Position Properties From Tracking',
 					id: 'screen_studiocamera_tracking_positionfromtracking',
-					isVisible: (options) =>
-						options.screen_studiocamera_tracking_positionfromtracking_toggle ==
-						0,
+					isVisibleExpression: '$(options:screen_studiocamera_tracking_positionfromtracking_toggle) == 0',
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Use Rotation Properties From Tracking: Make Toggle',
 					id: 'screen_studiocamera_tracking_rotationfromtracking_toggle',
+					disableAutoExpression: true,
 					default: true,
 				},
 				{
 					type: 'checkbox',
 					label: 'Use Rotation Properties From Tracking',
 					id: 'screen_studiocamera_tracking_rotationfromtracking',
-					isVisible: (options) =>
-						options.screen_studiocamera_tracking_rotationfromtracking_toggle ==
-						0,
+					isVisibleExpression: '$(options:screen_studiocamera_tracking_rotationfromtracking_toggle) == 0',
 					default: false,
 				},
 			],
@@ -3012,6 +2903,7 @@ module.exports = {
 					type: 'dropdown',
 					label: 'Type',
 					id: 'projector_transform_type',
+					disableAutoExpression: true,
 					default: 3,
 					choices: [
 						{ label: 'Position', id: 1 },
@@ -3023,54 +2915,42 @@ module.exports = {
 					type: 'textinput',
 					label: 'Position X',
 					id: 'projector_transform_position_x',
-					isVisible: (options) =>
-						options.projector_transform_type == 1 ||
-						options.projector_transform_type == 3,
+					isVisibleExpression: '$(options:projector_transform_type) == 1 || $(options:projector_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Y',
 					id: 'projector_transform_position_y',
-					isVisible: (options) =>
-						options.projector_transform_type == 1 ||
-						options.projector_transform_type == 3,
+					isVisibleExpression: '$(options:projector_transform_type) == 1 || $(options:projector_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Position Z',
 					id: 'projector_transform_position_z',
-					isVisible: (options) =>
-						options.projector_transform_type == 1 ||
-						options.projector_transform_type == 3,
+					isVisibleExpression: '$(options:projector_transform_type) == 1 || $(options:projector_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation X',
 					id: 'projector_transform_rotation_x',
-					isVisible: (options) =>
-						options.projector_transform_type == 2 ||
-						options.projector_transform_type == 3,
+					isVisibleExpression: '$(options:projector_transform_type) == 2 || $(options:projector_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Y',
 					id: 'projector_transform_rotation_y',
-					isVisible: (options) =>
-						options.projector_transform_type == 2 ||
-						options.projector_transform_type == 3,
+					isVisibleExpression: '$(options:projector_transform_type) == 2 || $(options:projector_transform_type) == 3',
 					default: '0.0',
 				},
 				{
 					type: 'textinput',
 					label: 'Rotation Z',
 					id: 'projector_transform_rotation_z',
-					isVisible: (options) =>
-						options.projector_transform_type == 2 ||
-						options.projector_transform_type == 3,
+					isVisibleExpression: '$(options:projector_transform_type) == 2 || $(options:projector_transform_type) == 3',
 					default: '0.0',
 				},
 			],
@@ -3190,12 +3070,10 @@ module.exports = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				let hour = parseInt(await self.parseVariablesInString(opt.goto_time_h));
-				let min = parseInt(await self.parseVariablesInString(opt.goto_time_m));
-				let sec = parseInt(await self.parseVariablesInString(opt.goto_time_s));
-				let frame = parseInt(
-					await self.parseVariablesInString(opt.goto_time_f)
-				);
+				let hour = parseInt(opt.goto_time_h);
+				let min = parseInt(opt.goto_time_m);
+				let sec = parseInt(opt.goto_time_s);
+				let frame = parseInt(opt.goto_time_f);
 
 				let fps = 60;
 				for (let k = 0; k < self.CHOICES_TIMELINEFEEDBACK.length; k++) {
@@ -3268,7 +3146,7 @@ module.exports = {
 				}
 				self.pixera.sendParams(0, 'Pixera.Compound.applyCueOnTimeline', {
 					timelineName: timelineName,
-					cueName: await self.parseVariablesInString(opt.cue_name),
+					cueName: opt.cue_name,
 				});
 			},
 		};
@@ -3297,12 +3175,8 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				let indexTl = parseInt(
-					await self.parseVariablesInString(opt.timelinecue_index)
-				);
-				let indexCue = parseInt(
-					await self.parseVariablesInString(opt.cue_index)
-				);
+				let indexTl = parseInt(opt.timelinecue_index);
+				let indexCue = parseInt(opt.cue_index);
 				self.pixera.sendParams(
 					0,
 					'Pixera.Compound.applyCueAtIndexOnTimelineAtIndex',
@@ -3355,14 +3229,10 @@ module.exports = {
 			callback: async (event) => {
 				let opt = event.options;
 
-				let hour = parseInt(
-					await self.parseVariablesInString(opt.blend_time_h)
-				);
-				let min = parseInt(await self.parseVariablesInString(opt.blend_time_m));
-				let sec = parseInt(await self.parseVariablesInString(opt.blend_time_s));
-				let frame = parseInt(
-					await self.parseVariablesInString(opt.blend_time_f)
-				);
+				let hour = parseInt(opt.blend_time_h);
+				let min = parseInt(opt.blend_time_m);
+				let sec = parseInt(opt.blend_time_s);
+				let frame = parseInt(opt.blend_time_f);
 
 				let fps = 60;
 				for (let k = 0; k < self.CHOICES_TIMELINEFEEDBACK.length; k++) {
@@ -3374,9 +3244,7 @@ module.exports = {
 						break;
 					}
 				}
-				let blendDuration = parseInt(
-					await self.parseVariablesInString(opt.blend_time_frames)
-				);
+				let blendDuration = parseInt(opt.blend_time_frames);
 				let time =
 					hour * 60 * 60 * parseInt(fps) +
 					min * 60 * parseInt(fps) +
@@ -3425,13 +3293,9 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				self.CHOICES_BLENDNAME_TIMELINE = parseInt(
-					opt.timelinename_blendcuename
-				);
-				let cueName = await self.parseVariablesInString(opt.blend_cue_name);
-				let blendDuration = parseInt(
-					await self.parseVariablesInString(opt.blend_name_frames)
-				);
+				self.CHOICES_BLENDNAME_TIMELINE = parseInt(opt.timelinename_blendcuename);
+				let cueName = opt.blend_cue_name;
+				let blendDuration = parseInt(opt.blend_name_frames);
 				self.CHOICES_BLENDNAME_FRAMES = blendDuration;
 				if (event.options.timelinename_blendcuename == -1) {
 					for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
@@ -3477,9 +3341,7 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				let val = parseFloat(
-					await self.parseVariablesInString(opt.timeline_opacity)
-				);
+				let val = parseFloat(opt.timeline_opacity);
 				if (event.options.timelinename_timelineopacity == -1) {
 					for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
 						self.pixera.sendParams(0, 'Pixera.Timelines.Timeline.setOpacity', {
@@ -3515,9 +3377,7 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				let val = parseInt(
-					await self.parseVariablesInString(opt.timeline_scrubcurrenttime_frames)
-				);
+				let val = parseInt(opt.timeline_scrubcurrenttime_frames);
 				if (event.options.timeline_scrubcurrenttime_timeline == -1) {
 					for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
 						self.pixera.sendParams(
@@ -3562,9 +3422,7 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				let val = parseFloat(
-					await self.parseVariablesInString(opt.timeline_zoomfactor_factor)
-				);
+				let val = parseFloat(opt.timeline_zoomfactor_factor);
 				if (event.options.timeline_zoomfactor_timeline == -1) {
 					for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
 						self.pixera.sendParams(
@@ -3714,38 +3572,35 @@ module.exports = {
 					type: 'checkbox',
 					label: 'At Current Time',
 					id: 'timeline_create_cue_atcurrenttime',
+					disableAutoExpression: true,
 					default: true,
 				},
 				{
 					type: 'textinput',
 					label: 'Hour',
 					id: 'timeline_create_cue_h',
-					isVisible: (options) =>
-						options.timeline_create_cue_atcurrenttime == 0,
+					isVisibleExpression: '$(options:timeline_create_cue_atcurrenttime) == 0',
 					default: '0',
 				},
 				{
 					type: 'textinput',
 					label: 'Minute',
 					id: 'timeline_create_cue_m',
-					isVisible: (options) =>
-						options.timeline_create_cue_atcurrenttime == 0,
+					isVisibleExpression: '$(options:timeline_create_cue_atcurrenttime) == 0',
 					default: '0',
 				},
 				{
 					type: 'textinput',
 					label: 'Second',
 					id: 'timeline_create_cue_s',
-					isVisible: (options) =>
-						options.timeline_create_cue_atcurrenttime == 0,
+					isVisibleExpression: '$(options:timeline_create_cue_atcurrenttime) == 0',
 					default: '0',
 				},
 				{
 					type: 'textinput',
 					label: 'Frame',
 					id: 'timeline_create_cue_f',
-					isVisible: (options) =>
-						options.timeline_create_cue_atcurrenttime == 0,
+					isVisibleExpression: '$(options:timeline_create_cue_atcurrenttime) == 0',
 					default: '0',
 				},
 			],
@@ -3753,13 +3608,9 @@ module.exports = {
 				let opt = event.options;
 
 				if (opt.timeline_create_cue_atcurrenttime) {
-					self.TIMELINE_CREATE_CUE_TIMELINEHANDLE = parseInt(
-						opt.timeline_create_cue_timeline
-					);
+					self.TIMELINE_CREATE_CUE_TIMELINEHANDLE = parseInt(opt.timeline_create_cue_timeline);
 					self.TIMELINE_CREATE_CUE_NAME = opt.timeline_create_cue_name;
-					self.TIMELINE_CREATE_CUE_CUEOPERATION = parseInt(
-						opt.timeline_create_cue_operation
-					);
+					self.TIMELINE_CREATE_CUE_CUEOPERATION = parseInt(opt.timeline_create_cue_operation);
 
 					if (parseInt(event.options.timeline_create_cue_timeline) == -1) {
 						for (let i = 0; i < self.SELECTEDTIMELINES.length; i++) {
@@ -3779,18 +3630,10 @@ module.exports = {
 						);
 					}
 				} else {
-					let hour = parseInt(
-						await self.parseVariablesInString(opt.timeline_create_cue_h)
-					);
-					let min = parseInt(
-						await self.parseVariablesInString(opt.timeline_create_cue_m)
-					);
-					let sec = parseInt(
-						await self.parseVariablesInString(opt.timeline_create_cue_s)
-					);
-					let frame = parseInt(
-						await self.parseVariablesInString(opt.timeline_create_cue_f)
-					);
+					let hour = parseInt(opt.timeline_create_cue_h);
+					let min = parseInt(opt.timeline_create_cue_m);
+					let sec = parseInt(opt.timeline_create_cue_s);
+					let frame = parseInt(opt.timeline_create_cue_f);
 
 					let fps = 60;
 					for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
@@ -4085,13 +3928,14 @@ module.exports = {
 					type: 'checkbox',
 					label: 'Toggle',
 					id: 'layer_mute_toggle',
+					disableAutoExpression: true,
 					default: false,
 				},
 				{
 					type: 'checkbox',
 					label: 'Mute',
 					id: 'layerState',
-					isVisible: (options) => options.layer_mute_toggle == false,
+					isVisibleExpression: '$(options:layer_mute_toggle) == false',
 					default: true,
 				},
 			],
@@ -4178,7 +4022,7 @@ module.exports = {
 			callback: async (event) => {
 				let opt = event.options;
 				let args = [];
-				let argString = await self.parseVariablesInString(opt.controlArguments);
+				let argString = opt.controlArguments;
 
 				const tempArgs = (argString + '')
 					.replace(/“/g, '"')
@@ -4227,7 +4071,7 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				let tempApiCmd = await self.parseVariablesInString(opt.api_methode);
+				let tempApiCmd = opt.api_methode;
 				try {
 					let apiCmd = JSON.parse(tempApiCmd);
 					self.pixera.sendParams(9999, apiCmd['method'], apiCmd['params']);

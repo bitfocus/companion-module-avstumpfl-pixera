@@ -1,7 +1,5 @@
-const { instanceStatus, TCPHelper } = require('@companion-module/base');
-const { debug } = require('console');
-const { forEach } = require('lodash');
-const { isIP } = require('net');
+import { TCPHelper } from '@companion-module/base'
+import { isIP } from 'node:net'
 
 class Pixera {
 	constructor(instance, config) {
@@ -9,7 +7,7 @@ class Pixera {
 		let self = instance;
 		//buffer for receive stream
 		if (isIP(config.host) !== 4) {
-			self.log('error', self.config + ' is not a valid IP');
+			self.log('error', config.host + ' is not a valid IP');
 			return;
 		}
 		if (config.host) {
@@ -1001,4 +999,4 @@ class Pixera {
 	}
 }
 
-module.exports = Pixera;
+export default Pixera
