@@ -44,17 +44,14 @@ class Pixera {
 				self.updateStatus(status, message);
 			});
 
-			this.socket.on('disconnect', function (err) {
-				self.log('error', 'Network error: ' + err.message);
-				this.markLinkDown('disconnected');
-			}.bind(this));
-
 			this.socket.on('error', function (err) {
 				self.log('error', 'Network error: ' + err.message);
 				this.markLinkDown('socket error');
 			}.bind(this));
 
-			this.socket.on('close', function () {
+			// TCPHelper emits end (not disconnect/close) when the far side closes
+			// cleanly; without this the watchdog is the only thing that notices
+			this.socket.on('end', function () {
 				self.log('debug', 'Close Connection.');
 				this.markLinkDown('connection closed');
 			}.bind(this));
