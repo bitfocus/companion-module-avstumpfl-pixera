@@ -1,2 +1,4 @@
 node_modules/
 .eslintrc
+# local debug file: its presence makes Companion open an inspect port
+DEBUG-INSPECT

@@ -1119,4 +1119,4 @@ class Pixera {
 	}
 }
 
-module.exports = Pixera;
+export default Pixera

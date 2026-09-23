@@ -1,5 +1,5 @@
-const { Regex } = require('@companion-module/base')
-module.exports = {
+import { Regex } from '@companion-module/base'
+export default {
 	getConfigFields() {
 		return [
 			{
@@ -11,7 +11,7 @@ module.exports = {
 			},
 			{
 				type: 'static-text',
-				id: 'info',
+				id: 'info_api',
 				width: 12,
 				label: 'API Function',
 				value: "use API function at your own risk",
@@ -34,6 +34,7 @@ module.exports = {
 			{
 				type: 'checkbox',
 				id: 'polling',
+				disableAutoExpression: true,
 				label: 'Enable Polling feedbacks?',
 				width: 4,
 				default: false,
@@ -42,7 +43,7 @@ module.exports = {
 				type: 'dropdown',
 				label: 'Polling Rate',
 				id: 'polling_rate',
-				isVisible: (configValues) => configValues.polling === true,
+				isVisibleExpression: '$(options:polling) === true',
 				width: 6,
 				default: 50,
 				choices: [
