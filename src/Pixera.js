@@ -1,5 +1,17 @@
-import { TCPHelper } from '@companion-module/base'
-import { isIP } from 'node:net'
+const { InstanceStatus, TCPHelper } = require('@companion-module/base');
+const { debug } = require('console');
+const { forEach } = require('lodash');
+const { isIP } = require('net');
+
+// how often the watchdog checks the link, and how long without any reply before
+// we treat the socket as dead (a killed Pixera can leave the TCP session half-open)
+const WATCHDOG_INTERVAL = 2000;
+const RX_TIMEOUT = 8000;
+// a restarting engine accepts TCP well before it answers, so a socket that has
+// never received anything gets a longer grace period than one that went quiet
+const CONNECT_GRACE = 30000;
+const REBUILD_BACKOFF_MAX = 60000;
+const DISCOVERY_RETRY = 15000;
 
 class Pixera {
 	constructor(instance, config) {
@@ -10,66 +22,48 @@ class Pixera {
 			self.log('error', config.host + ' is not a valid IP');
 			return;
 		}
+		this.config = config;
+		this.rebuildCount = 0;
+		this.nextRebuildAt = 0;
+		this.discoveryPending = true;
+		this.lastDiscovery = 0;
+		this.createSocket();
+		this.watchdog = setInterval(this.checkLink.bind(this), WATCHDOG_INTERVAL);
+	}
+	createSocket() {
+		let self = this.instance;
+		let config = this.config;
 		if (config.host) {
-			this.socket = new TCPHelper(config.host, config.port);
+			this.lastRx = Date.now();
+			this.everReceived = false;
+			this.socket = new TCPHelper(config.host, config.port, {
+				reconnect: true,
+				reconnect_interval: 2000,
+			});
 			this.socket.on('status_change', function (status, message) {
 				self.updateStatus(status, message);
 			});
 
-			this.socket.on('disconnect', function (err) {
-				self.log('error', 'Network error: ' + err.message);
-				clearInterval(self.retry_interval);
-				clearInterval(self.getSelectedTimelines);
-			});
-
 			this.socket.on('error', function (err) {
 				self.log('error', 'Network error: ' + err.message);
-				clearInterval(self.retry_interval);
-				clearInterval(self.getSelectedTimelines);
-			});
+				this.markLinkDown('socket error');
+			}.bind(this));
 
-			this.socket.on('close', function () {
+			// TCPHelper emits end (not disconnect/close) when the far side closes
+			// cleanly; without this the watchdog is the only thing that notices
+			this.socket.on('end', function () {
 				self.log('debug', 'Close Connection.');
-				clearInterval(self.retry_interval);
-				clearInterval(self.getSelectedTimelines);
-			});
+				this.markLinkDown('connection closed');
+			}.bind(this));
 			this.socket.on('connect', () => {
-				self.log('info', 'Pixera Connected');
-				//use version to filter commands
-				this.send(1, 'Pixera.Utility.getApiRevision');
-				//send message to get reply
-				this.sendParams(99, 'Pixera.Utility.setShowContextInReplies', {
-					doShow: true,
-				});
-				self.initFeedbacks();
-				this.initVariables();
-				this.initLiveSystems();
-				this.initOutputs();
-				this.initStudioCameras();
-				this.initProjectors();
-				//don't get resources because it take to long
-				//this.initResources();
-				this.initResourceFolders();
-				/*this.initTranscodingFolders();*/
-				this.initTimelines();
-				this.initScreens();
-				if (self.config.polling) {
-					//self.log('debug',config.polling_rate);
-					self.retry_interval = setInterval(
-						this.retry.bind(this),
-						config.polling_rate
-					); //ms for pool timelinestate
-					this.retry();
-				}
-				self.getSelectedTimelines = setInterval(
-					this.getSelectedTimeline.bind(this),
-					100
-				); //ms for pool selected Timelines
-				this.getSelectedTimeline();
+				this.onConnected();
 			});
 			let currentLength = 0;
 			let splittetMessage = '';
 			this.socket.on('data', (chunk) => {
+				this.lastRx = Date.now();
+				this.everReceived = true;
+				this.rebuildCount = 0;
 				//const header = 'pxr1';
 				const header = [112, 120, 114, 49];
 				let messageLength = 0;
@@ -137,10 +131,111 @@ class Pixera {
 		let self = this.instance;
 		clearInterval(self.retry_interval);
 		clearInterval(self.getSelectedTimelines);
+		clearInterval(this.watchdog);
 		if (this.socket) {
 			this.socket.destroy();
 			delete this.socket;
 		}
+	}
+	onConnected() {
+		let self = this.instance;
+		let config = this.config;
+		self.log('info', 'Pixera Connected');
+		// guard against a connect without an intervening close leaving orphaned timers
+		clearInterval(self.retry_interval);
+		clearInterval(self.getSelectedTimelines);
+		self.PIXERA_LINK_UP = true;
+		this.lastRx = Date.now();
+		self.updateStatus(InstanceStatus.Ok);
+		//use version to filter commands
+		this.send(1, 'Pixera.Utility.getApiRevision');
+		//send message to get reply
+		this.sendParams(99, 'Pixera.Utility.setShowContextInReplies', {
+			doShow: true,
+		});
+		self.initFeedbacks();
+		this.runDiscovery();
+		if (self.config.polling) {
+			//self.log('debug',config.polling_rate);
+			self.retry_interval = setInterval(
+				this.retry.bind(this),
+				config.polling_rate
+			); //ms for pool timelinestate
+			this.retry();
+		}
+		self.getSelectedTimelines = setInterval(
+			this.getSelectedTimeline.bind(this),
+			100
+		); //ms for pool selected Timelines
+		this.getSelectedTimeline();
+	}
+	markLinkDown(reason) {
+		let self = this.instance;
+		clearInterval(self.retry_interval);
+		clearInterval(self.getSelectedTimelines);
+		if (self.PIXERA_LINK_UP === false) {
+			return;
+		}
+		self.PIXERA_LINK_UP = false;
+		// drop cached engine state so feedbacks can't keep reporting a dead system as connected
+		self.LIVESYSTEM_STATE = {};
+		self.updateStatus(InstanceStatus.Disconnected, reason);
+		self.checkFeedbacks('livesystem_state');
+	}
+	runDiscovery() {
+		this.discoveryPending = true;
+		this.lastDiscovery = Date.now();
+		this.initVariables();
+		this.initLiveSystems();
+		this.initOutputs();
+		this.initStudioCameras();
+		this.initProjectors();
+		//don't get resources because it take to long
+		//this.initResources();
+		this.initResourceFolders();
+		/*this.initTranscodingFolders();*/
+		this.initTimelines();
+		this.initScreens();
+	}
+	checkLink() {
+		let self = this.instance;
+		if (!this.socket || !this.socket.isConnected) {
+			this.markLinkDown('not connected');
+			return;
+		}
+		let now = Date.now();
+		let timeout = this.everReceived ? RX_TIMEOUT : CONNECT_GRACE;
+		if (now - this.lastRx > timeout && now >= this.nextRebuildAt) {
+			this.rebuildCount += 1;
+			this.nextRebuildAt =
+				now +
+				Math.min(
+					REBUILD_BACKOFF_MAX,
+					WATCHDOG_INTERVAL * Math.pow(2, this.rebuildCount)
+				);
+			self.log(
+				'error',
+				'No reply from Pixera for ' + timeout + 'ms, rebuilding connection'
+			);
+			this.markLinkDown('no reply from Pixera');
+			this.rebuildSocket();
+			return;
+		}
+		// keeps traffic flowing so lastRx stays meaningful even when polling is off
+		this.send(1, 'Pixera.Utility.getApiRevision');
+		// discovery runs on connect, which can land before the engine is ready to
+		// answer; without this the dropdowns stay empty until a manual reconnect
+		if (this.discoveryPending && now - this.lastDiscovery > DISCOVERY_RETRY) {
+			self.log('info', 'No live systems yet, retrying discovery');
+			this.runDiscovery();
+		}
+	}
+	rebuildSocket() {
+		if (this.socket) {
+			this.socket.destroy();
+			delete this.socket;
+		}
+		this.createSocket();
 	}
 	generateCommand(id, method, params) {
 		let self = this.instance;
@@ -219,6 +314,11 @@ class Pixera {
 	retry() {
 		let self = this.instance;
 		this.pool();
+		for (let i = 0; i < self.CHOICES_LIVESYSTEMHANDLE.length; i++) {
+			this.sendParams(61, 'Pixera.LiveSystems.LiveSystem.getState', {
+				handle: self.CHOICES_LIVESYSTEMHANDLE[i],
+			});
+		}
 	}
 	initLiveSystems() {
 		let self = this.instance;
@@ -258,6 +358,7 @@ class Pixera {
 
 		self.CHOICES_LIVESYSTEMNAME = [{ label: '', id: 0 }];
 		self.CHOICES_LIVESYSTEMHANDLE = '';
+		self.LIVESYSTEM_STATE = {};
 		self.CHOICES_OUTPUTNAME = [{ label: '', id: 0 }];
 		self.CHOICES_OUTPUTHANDLE = [];
 		self.CHOICES_STUDIOCAMERANAME = [{ label: '', id: 0 }];
@@ -393,9 +494,15 @@ class Pixera {
 						let result = jsonData.result;
 						self.INDEX_LIVESYSTEM = 0;
 						if (result != null) {
+							if (result.length > 0) {
+								this.discoveryPending = false;
+							}
 							self.CHOICES_LIVESYSTEMHANDLE = result;
 							for (let i = 0; i < result.length; i++) {
 								this.sendParams(16, 'Pixera.LiveSystems.LiveSystem.getName', {
+									handle: result[i],
+								});
+								this.sendParams(61, 'Pixera.LiveSystems.LiveSystem.getState', {
 									handle: result[i],
 								});
 							}
@@ -414,6 +521,9 @@ class Pixera {
 							self.INDEX_LIVESYSTEM += 1;
 						}
 						self.updateActions();
+						// re-register feedbacks so dropdowns in the UI pick up the discovered names
+						// (feedback definitions are captured at connect, before live systems are known)
+						self.initFeedbacks();
 					}
 					break;
 				case 17: //Pixera.Screens.getStudioCameras
@@ -888,6 +998,16 @@ class Pixera {
 					this.sendParams(0, 'Pixera.Resources.Resource.distribute', {
 						handle: parseInt(jsonData.result),
 					});
+					break;
+				case 61: //Pixera.LiveSystems.LiveSystem.getState
+					{
+						let result = jsonData.result;
+						let handle = jsonData.context ? jsonData.context.handle : null;
+						if (handle != null) {
+							self.LIVESYSTEM_STATE[handle] = result;
+							self.checkFeedbacks('livesystem_state');
+						}
+					}
 					break;
 
 
