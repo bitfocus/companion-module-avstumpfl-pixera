@@ -154,20 +154,20 @@ class Pixera {
 			doShow: true,
 		});
 		self.initFeedbacks();
+		self.initPresets();
+		this.send(75, 'Pixera.Ui.getAppMode');
 		this.runDiscovery();
 		if (self.config.polling) {
-			//self.log('debug',config.polling_rate);
 			self.retry_interval = setInterval(
 				this.retry.bind(this),
-				config.polling_rate
-			); //ms for pool timelinestate
+				this.pollInterval()
+			);
 			this.retry();
+		} else {
+			// one call a second keeps "selected timeline" usable without the old 100ms loop
+			self.getSelectedTimelines = setInterval(this.tickSelected.bind(this), 1000);
+			this.tickSelected();
 		}
-		self.getSelectedTimelines = setInterval(
-			this.getSelectedTimeline.bind(this),
-			100
-		); //ms for pool selected Timelines
-		this.getSelectedTimeline();
 	}
 	markLinkDown(reason) {
 		let self = this.instance;
@@ -307,17 +307,143 @@ class Pixera {
 		let self = this.instance;
 		this.send(10000, 'Pixera.Utility.pollMonitoring');
 	}
+	pollInterval() {
+		let rate = parseInt(this.config.polling_rate, 10);
+		if (rate !== 50 && rate !== 100 && rate !== 200 && rate !== 500 && rate !== 1000 && rate !== 2000) {
+			return 200;
+		}
+		return rate;
+	}
 	getSelectedTimeline() {
 		let self = this.instance;
 		this.send(10001, 'Pixera.Timelines.getTimelinesSelected');
 	}
+	transportLabel(mode) {
+		if (mode == 1) return 'Play';
+		if (mode == 2) return 'Pause';
+		if (mode == 3) return 'Stop';
+		return '';
+	}
+	// running time and countdown for whichever timeline is selected in Pixera
+	publishActiveTimeline() {
+		let self = this.instance;
+		if (self.syncTimelineVariables) self.syncTimelineVariables();
+		let values = {};
+		let selected = null;
+		let names = [];
+		let timelines = self.CHOICES_TIMELINEFEEDBACK || [];
+		let picked = self.SELECTEDTIMELINES || [];
+		for (let i = 0; i < timelines.length; i++) {
+			let tl = timelines[i];
+			if (tl.varKey && tl.name && tl.name != '0') {
+				let key = 'tl_' + tl.varKey;
+				values[key + '_time'] = self.framesToHmsf(tl.timelinePositions, tl.fps);
+				values[key + '_countdown'] = self.framesToHmsf(tl.timelineCountdowns, tl.fps);
+				values[key + '_transport'] = this.transportLabel(tl.timelineTransport);
+				values[key + '_fps'] = tl.fps ? String(tl.fps) : '';
+				values[key + '_countdown_kind'] = self.countdownKind(tl.countdownFlag);
+				values[key + '_next_cue'] = tl.nextCueName || '';
+				values[key + '_prev_cue'] = tl.prevCueName || '';
+			}
+			for (let s = 0; s < picked.length; s++) {
+				if (tl.handle == picked[s]) {
+					names.push(tl.name);
+					if (!selected) selected = tl;
+				}
+			}
+		}
+		if (!selected) {
+			values.active_timeline = '';
+			values.running_time = '';
+			values.time_to_next_cue = '';
+			values.transport = '';
+			values.fps = '';
+			values.countdown_kind = '';
+			values.next_cue = '';
+			values.prev_cue = '';
+		} else {
+			values.active_timeline = names.join(', ');
+			values.running_time = self.framesToHmsf(selected.timelinePositions, selected.fps);
+			values.time_to_next_cue = self.framesToHmsf(selected.timelineCountdowns, selected.fps);
+			values.transport = this.transportLabel(selected.timelineTransport);
+			values.fps = selected.fps ? String(selected.fps) : '';
+			values.countdown_kind = self.countdownKind(selected.countdownFlag);
+			values.next_cue = selected.nextCueName || '';
+			values.prev_cue = selected.prevCueName || '';
+		}
+		self.setVariableValues(values);
+	}
+	// selectedOnly: just the timeline selected in Pixera. Otherwise also one other, rotating.
+	askCueAround(selectedOnly) {
+		let self = this.instance;
+		let handles = [];
+		let picked = self.SELECTEDTIMELINES || [];
+		if (picked.length) handles.push(picked[0]);
+		if (!selectedOnly) {
+			let extras = [];
+			let timelines = self.CHOICES_TIMELINEFEEDBACK || [];
+			for (let i = 0; i < timelines.length; i++) {
+				let h = timelines[i].handle;
+				if (h == -1 || !timelines[i].name || timelines[i].name == '0') continue;
+				if (handles.indexOf(h) >= 0) continue;
+				extras.push(h);
+			}
+			if (extras.length) {
+				if (this.cuePoll == undefined) this.cuePoll = 0;
+				handles.push(extras[this.cuePoll % extras.length]);
+				this.cuePoll++;
+			}
+		}
+		for (let i = 0; i < handles.length; i++) {
+			this.sendParams(125, 'Pixera.Timelines.Timeline.getCueNext', { handle: handles[i] });
+			this.sendParams(126, 'Pixera.Timelines.Timeline.getCuePrevious', { handle: handles[i] });
+		}
+	}
+	rememberCueName(timeline, cue, which) {
+		let self = this.instance;
+		if (!cue) {
+			this.writeCueName(timeline, which, '');
+			return;
+		}
+		if (!self.CUE_NAME_FOR) self.CUE_NAME_FOR = {};
+		if (!self.CUE_NAME_FOR[cue]) self.CUE_NAME_FOR[cue] = [];
+		self.CUE_NAME_FOR[cue].push({ timeline: timeline, which: which });
+		this.sendParams(127, 'Pixera.Timelines.Cue.getName', { handle: cue });
+	}
+	writeCueName(timeline, which, name) {
+		let self = this.instance;
+		let timelines = self.CHOICES_TIMELINEFEEDBACK || [];
+		for (let i = 0; i < timelines.length; i++) {
+			if (timelines[i].handle != timeline) continue;
+			if (which == 'next') timelines[i].nextCueName = name || '';
+			else timelines[i].prevCueName = name || '';
+		}
+		self.checkFeedbacks('next_cue');
+		self.checkFeedbacks('prev_cue');
+		this.publishActiveTimeline();
+	}
+	tickSelected() {
+		this.getSelectedTimeline();
+		this.askCueAround(true);
+	}
 	retry() {
 		let self = this.instance;
 		this.pool();
-		for (let i = 0; i < self.CHOICES_LIVESYSTEMHANDLE.length; i++) {
-			this.sendParams(61, 'Pixera.LiveSystems.LiveSystem.getState', {
-				handle: self.CHOICES_LIVESYSTEMHANDLE[i],
+		this.getSelectedTimeline();
+		this.send(75, 'Pixera.Ui.getAppMode');
+		if (self.SELECTEDTIMELINES && self.SELECTEDTIMELINES.length) {
+			this.sendParams(98, 'Pixera.Timelines.Timeline.getPreviewEditTransportMode', {
+				handle: self.SELECTEDTIMELINES[0],
 			});
+		}
+		this.askCueAround(false);
+		let systems = self.CHOICES_LIVESYSTEMHANDLE;
+		if (systems && systems.length && typeof systems != 'string') {
+			for (let i = 0; i < systems.length; i++) {
+				this.sendParams(61, 'Pixera.LiveSystems.LiveSystem.getState', {
+					handle: systems[i],
+				});
+			}
 		}
 	}
 	initLiveSystems() {
@@ -415,6 +541,18 @@ class Pixera {
 				case 11: //get timeline list
 					{
 						let result = jsonData.result;
+						self.CHOICES_CUENAME = [];
+						self._cueSig = {};
+						let hasSelected = false;
+						for (let n = 0; n < self.CHOICES_TIMELINENAME.length; n++) {
+							if (self.CHOICES_TIMELINENAME[n].id == -1) hasSelected = true;
+						}
+						if (!hasSelected) {
+							self.CHOICES_TIMELINENAME.unshift({
+								label: 'Selected timeline',
+								id: -1,
+							});
+						}
 						self.CHOICES_TIMELINEHANDLE = result;
 						self.CHOICES_TIMELINEHANDLE.push(-1);
 						for (let i = 0; i < result.length; i++) {
@@ -462,6 +600,11 @@ class Pixera {
 								self.CHOICES_TIMELINEFEEDBACK[k]['name'] = result['name']; //set timeline name for feedback
 								self.CHOICES_TIMELINEFEEDBACK[k]['fps'] = result['fps']; //set timeline fps for feedback
 							}
+						}
+						if (handle != -1) {
+							this.sendParams(124, 'Pixera.Timelines.Timeline.getCueNames', {
+								handle: handle,
+							});
 						}
 						self.updateActions();
 					}
@@ -1025,6 +1168,270 @@ class Pixera {
         break;
         */
 
+				case 73: // Layer.getInst -> setOpacity
+					{
+						let result = jsonData.result;
+						if (result != null) {
+							let params = {
+								handle: result,
+								value: self.LAYER_OPACITY,
+							};
+							if (self.LAYER_OPACITY_FADE > 0) {
+								params.fadeTimeMs = self.LAYER_OPACITY_FADE;
+							}
+							this.sendParams(0, 'Pixera.Timelines.Layer.setOpacity', params);
+						}
+					}
+					break;
+				case 74: // getAppMode, then flip inner/outer
+					{
+						let next = 4;
+						if (jsonData.result == 4) next = 3;
+						self.APP_MODE = next;
+						self.setVariableValues({ workspace: self.workspaceLabel(next) });
+						self.checkFeedbacks('workspace_mode');
+						this.sendParams(0, 'Pixera.Ui.setAppMode', { mode: next });
+					}
+					break;
+				case 75: // getAppMode
+					{
+						self.APP_MODE = jsonData.result;
+						self.setVariableValues({
+							workspace: self.workspaceLabel(self.APP_MODE),
+						});
+						self.checkFeedbacks('workspace_mode');
+					}
+					break;
+				case 97: // getCurrentTime -> start preview edit at the playhead
+					{
+						let result = jsonData.result;
+						if (result != null) {
+							this.sendParams(0, 'Pixera.Timelines.Timeline.startPreviewEdit', {
+								handle: jsonData.context.handle,
+								goalTime: result,
+							});
+							self.PREVIEW_EDIT = 2;
+							self.setVariableValues({ preview_edit: 'On' });
+							self.checkFeedbacks('preview_edit');
+						}
+					}
+					break;
+				case 98: // preview edit transport, 0 means edit mode is off
+					{
+						self.PREVIEW_EDIT = jsonData.result;
+						let on = self.PREVIEW_EDIT == 1 || self.PREVIEW_EDIT == 2 || self.PREVIEW_EDIT == 3;
+						self.setVariableValues({ preview_edit: on ? 'On' : 'Off' });
+						self.checkFeedbacks('preview_edit');
+					}
+					break;
+				case 110: // default fade duration in ms -> blendToTime in frames
+					{
+						let ms = parseFloat(jsonData.result);
+						let jobs = self.FADE_JOBS || [];
+						self.FADE_JOBS = [];
+						if (isNaN(ms)) break;
+						for (let i = 0; i < jobs.length; i++) {
+							let frames = (ms / 1000) * jobs[i].fps;
+							this.sendParams(0, 'Pixera.Timelines.Timeline.blendToTime', {
+								handle: jobs[i].handle,
+								goalTime: jobs[i].goalTime,
+								blendDuration: frames,
+							});
+						}
+					}
+					break;
+				case 124: // cue names for the dropdown
+					{
+						let names = jsonData.result;
+						let handle = jsonData.context && jsonData.context.handle;
+						if (handle == undefined || !names || !names.length) break;
+						if (!Array.isArray(names)) break;
+						let tlName = '';
+						for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
+							if (self.CHOICES_TIMELINEFEEDBACK[i]['handle'] == handle) {
+								tlName = self.CHOICES_TIMELINEFEEDBACK[i]['name'];
+							}
+						}
+						let sig = names.join('|');
+						if (!self._cueSig) self._cueSig = {};
+						if (self._cueSig[handle] == sig) break;
+						self._cueSig[handle] = sig;
+						let prefix = String(handle) + '||';
+						let kept = [];
+						for (let i = 0; i < self.CHOICES_CUENAME.length; i++) {
+							if (String(self.CHOICES_CUENAME[i].id).indexOf(prefix) != 0) {
+								kept.push(self.CHOICES_CUENAME[i]);
+							}
+						}
+						for (let i = 0; i < names.length; i++) {
+							let n = names[i];
+							if (n && n.name) n = n.name;
+							if (!n) continue;
+							kept.push({
+								id: prefix + n,
+								label: (tlName || 'Timeline') + ' / ' + n,
+							});
+						}
+						self.CHOICES_CUENAME = kept;
+						self.updateActions();
+					}
+					break;
+				case 125: // next cue handle
+					this.rememberCueName(
+						jsonData.context && jsonData.context.handle,
+						jsonData.result,
+						'next'
+					);
+					break;
+				case 126: // previous cue handle
+					this.rememberCueName(
+						jsonData.context && jsonData.context.handle,
+						jsonData.result,
+						'prev'
+					);
+					break;
+				case 127: // cue name came back
+					{
+						let cue = jsonData.context && jsonData.context.handle;
+						let waiting = (self.CUE_NAME_FOR && self.CUE_NAME_FOR[cue]) || [];
+						if (self.CUE_NAME_FOR) delete self.CUE_NAME_FOR[cue];
+						let name = jsonData.result || '';
+						for (let i = 0; i < waiting.length; i++) {
+							this.writeCueName(waiting[i].timeline, waiting[i].which, name);
+						}
+					}
+					break;
+				case 130: // cue handle from name, then the queued calls
+					{
+						let cue = jsonData.result;
+						let tl = jsonData.context && jsonData.context.handle;
+						let calls = self.CUE_JOBS && self.CUE_JOBS[tl];
+						if (self.CUE_JOBS) delete self.CUE_JOBS[tl];
+						if (cue == null || !calls) break;
+						for (let i = 0; i < calls.length; i++) {
+							let params = { handle: cue };
+							let extra = calls[i].params || {};
+							for (let key in extra) params[key] = extra[key];
+							this.sendParams(0, calls[i].method, params);
+						}
+					}
+					break;
+				case 131: // playhead, then move the cue there
+					{
+						let frames = jsonData.result;
+						let tl = jsonData.context && jsonData.context.handle;
+						let job = self.CUE_MOVE && self.CUE_MOVE[tl];
+						if (self.CUE_MOVE) delete self.CUE_MOVE[tl];
+						if (job == null || frames == null) break;
+						if (!self.CUE_JOBS) self.CUE_JOBS = {};
+						self.CUE_JOBS[tl] = [
+							{ method: 'Pixera.Timelines.Cue.setTime', params: { time: frames } },
+						];
+						this.sendParams(130, 'Pixera.Timelines.Timeline.getCueFromName', {
+							handle: tl,
+							name: job.name,
+						});
+					}
+					break;
+				case 140: // Layer.getInst -> setVolume
+					{
+						if (jsonData.result == null) break;
+						let params = { handle: jsonData.result, value: self.LAYER_VOLUME };
+						if (self.LAYER_VOLUME_FADE > 0) params.fadeTimeMs = self.LAYER_VOLUME_FADE;
+						this.sendParams(0, 'Pixera.Timelines.Layer.setVolume', params);
+					}
+					break;
+				case 142: // Resource.getInst -> getId
+					{
+						if (jsonData.result == null || !self.CLIP_RES) break;
+						this.sendParams(143, 'Pixera.Resources.Resource.getId', {
+							handle: jsonData.result,
+						});
+					}
+					break;
+				case 143: // resource id -> layer
+					{
+						if (jsonData.result == null || !self.CLIP_RES) break;
+						self.CLIP_RES.resId = jsonData.result;
+						this.sendParams(144, 'Pixera.Timelines.Layer.getInst', {
+							instancePath: self.CLIP_RES.layerPath,
+						});
+					}
+					break;
+				case 144: // layer -> current clip
+					{
+						if (jsonData.result == null || !self.CLIP_RES) break;
+						this.sendParams(145, 'Pixera.Timelines.Layer.getClipCurrent', {
+							handle: jsonData.result,
+							offset: 0,
+						});
+					}
+					break;
+				case 145: // clip -> assign resource
+					{
+						let job = self.CLIP_RES;
+						self.CLIP_RES = null;
+						if (jsonData.result == null || !job) break;
+						let params = { handle: jsonData.result, resId: job.resId };
+						if (job.setDuration) params.setToResourceDuration = true;
+						else params.setToResourceDuration = false;
+						this.sendParams(0, 'Pixera.Timelines.Clip.assignResource', params);
+					}
+					break;
+				case 147: // layer -> current clip, for duration
+					{
+						if (jsonData.result == null || !self.CLIP_LEN) break;
+						this.sendParams(148, 'Pixera.Timelines.Layer.getClipCurrent', {
+							handle: jsonData.result,
+							offset: 0,
+						});
+					}
+					break;
+				case 148: // current clip
+					{
+						let job = self.CLIP_LEN;
+						if (jsonData.result == null || !job) {
+							self.CLIP_LEN = null;
+							break;
+						}
+						job.clip = jsonData.result;
+						if (job.mode == 'set') {
+							self.CLIP_LEN = null;
+							this.sendParams(0, 'Pixera.Timelines.Clip.setDuration', {
+								handle: job.clip,
+								duration: job.frames,
+							});
+						} else {
+							this.sendParams(149, 'Pixera.Timelines.Clip.getDuration', {
+								handle: job.clip,
+							});
+						}
+					}
+					break;
+				case 149: // duration + frames
+					{
+						let job = self.CLIP_LEN;
+						self.CLIP_LEN = null;
+						if (jsonData.result == null || !job) break;
+						this.sendParams(0, 'Pixera.Timelines.Clip.setDuration', {
+							handle: job.clip,
+							duration: parseFloat(jsonData.result) + job.addFrames,
+						});
+					}
+					break;
+				case 150: // playhead -> place clip
+					{
+						let job = self.PLACE_CLIP;
+						self.PLACE_CLIP = null;
+						if (jsonData.result == null || !job) break;
+						this.sendParams(0, 'Pixera.Compound.createClipOnLayerAtTimeWithResource', {
+							layerPath: job.layerPath,
+							time: jsonData.result,
+							resourcePath: job.resourcePath,
+						});
+					}
+					break;
+
 				case 9999: //API
 					{
 						var result = jsonData.result;
@@ -1093,6 +1500,9 @@ class Pixera {
 											) {
 												self.CHOICES_TIMELINEFEEDBACK[t]['timelineCountdowns'] =
 													timelineCountdowns[b]['value'];
+												let flag = timelineCountdowns[b]['flag'];
+												if (flag == undefined) flag = timelineCountdowns[b]['Flag'];
+												self.CHOICES_TIMELINEFEEDBACK[t]['countdownFlag'] = flag;
 												self.checkFeedbacks('timeline_countdowns');
 												//self.log('debug', 'countdowns:',self.CHOICES_TIMELINEFEEDBACK);
 											}
@@ -1101,6 +1511,13 @@ class Pixera {
 								}
 							}
 						}
+						self.checkFeedbacks('running_time');
+						self.checkFeedbacks('time_to_next_cue');
+						self.checkFeedbacks('transport_play');
+						self.checkFeedbacks('transport_pause');
+						self.checkFeedbacks('transport_stop');
+						self.checkFeedbacks('countdown_under');
+						this.publishActiveTimeline();
 					}
 					break;
 				case 10001:
@@ -1108,7 +1525,19 @@ class Pixera {
 						var result = jsonData.result;
 						if (result != null) {
 							self.SELECTEDTIMELINES = result;
+						} else {
+							self.SELECTEDTIMELINES = [];
 						}
+						self.checkFeedbacks('active_timeline');
+						self.checkFeedbacks('running_time');
+						self.checkFeedbacks('time_to_next_cue');
+						self.checkFeedbacks('transport_play');
+						self.checkFeedbacks('transport_pause');
+						self.checkFeedbacks('transport_stop');
+						self.checkFeedbacks('countdown_under');
+						self.checkFeedbacks('next_cue');
+						self.checkFeedbacks('prev_cue');
+						this.publishActiveTimeline();
 					}
 					break;
 			}
