@@ -8,7 +8,7 @@ const ID_PARAM_GETNAME = 72;
 // the layer's nodes as named in the timeline UI, each with x/y/z parameters below it
 // (Pixera shows "Size" instead of "Scale" when that is set in the general settings)
 const TRANSFORMS = {
-	position: { label: 'Position', nodes: ['position'], fine: 0.01, coarse: 0.1 },
+	position: { label: 'Position', nodes: ['position'], fine: 1, coarse: 10 }, //pixels with "show dims in pixels"
 	scale: { label: 'Size (Scale)', nodes: ['scale', 'size'], fine: 0.01, coarse: 0.1 },
 	rotation: { label: 'Rotation', nodes: ['rotation'], fine: 1, coarse: 10 },
 };
