@@ -263,6 +263,7 @@ module.exports = {
 				}
 			}//close callback
 		},//close livesystem state
+		...self.getOpacityFeedbacks(),
 	};//close feedbacks
 		self.setFeedbackDefinitions(feedbacks);
 	}

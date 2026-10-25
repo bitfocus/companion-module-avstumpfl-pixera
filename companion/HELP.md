@@ -21,6 +21,8 @@ Nativ implementation using Pixera JSON/TCP Api
 * Timeline Opacity				
 * Timeline SMPTE Mode				
 * Timeline Fade Opacity			(StartOpacityAnimation)
+* Timeline Opacity Adjust		(set, increase/decrease by step, toggle 0/100%)
+* Layer Opacity Adjust			(set, increase/decrease by step, toggle 0/100%, by layer path e.g. Timeline 1.Layer 1)
 * Layer Reset
 * Layer Mute/VolumeMute
 * Layer Paramter
@@ -32,6 +34,18 @@ Nativ implementation using Pixera JSON/TCP Api
 * Button Text Timeline Timecode
 * Button Text Timeline Remain
 * Button Color Live System State (requires polling to be enabled)
+* Button Style Timeline/Layer Opacity Level
+
+** Stream Deck+ Dials
+* Put Opacity Adjust with Decrease on rotate left and Increase on rotate right, and Toggle on press
+* Presets: Opacity Dials (Stream Deck+) has a ready-made dial for every timeline
+* Steps are applied from the module's own copy of the value, so fast turns stay smooth
+
+** Variables
+* `timeline_opacity_<timeline name>` in percent, for every timeline
+* `layer_opacity_<layer path>` in percent, for every layer used in an action or feedback
+* `opacity_last_name` / `opacity_last_value`: the last timeline or layer changed from Companion
+* Changes made in Pixera itself show up when polling is enabled
 
 ** Response
 * API Commands returns Handles if available

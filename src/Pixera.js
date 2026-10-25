@@ -319,6 +319,7 @@ class Pixera {
 				handle: self.CHOICES_LIVESYSTEMHANDLE[i],
 			});
 		}
+		self.pollOpacity();
 	}
 	initLiveSystems() {
 		let self = this.instance;
@@ -387,6 +388,7 @@ class Pixera {
 		self.INDEX_OUTPUT = 0;
 		self.INDEX_RESOURCE = 0;
 		self.INDEX_RESOURCEFOLDER = 0;
+		self.resetOpacityState();
 	}
 	initScreens() {
 		let self = this.instance;
@@ -399,6 +401,9 @@ class Pixera {
 			let jsonData = JSON.parse(data);
 			if (jsonData.id == undefined) {
 				self.log('debug', 'id is missing in rec data: ' + data);
+				return;
+			}
+			if (self.handleOpacityReply(jsonData)) {
 				return;
 			}
 			switch (jsonData.id) {
@@ -464,6 +469,10 @@ class Pixera {
 							}
 						}
 						self.updateActions();
+						self.updateOpacityVariableDefinitions();
+						self.updateOpacityPresets();
+						// feedback timeline dropdowns only know the timelines discovered so far
+						self.initFeedbacks();
 					}
 					break;
 				case 13: //Pixera.Screens.getScreens

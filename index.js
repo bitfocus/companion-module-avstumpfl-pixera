@@ -4,6 +4,7 @@ const Pixera = require('./src/Pixera')
 const config = require('./src/config')
 const actions = require('./src/actions')
 const feedbacks = require('./src/feedbacks')
+const opacity = require('./src/opacity')
 
 class PixeraInstance extends InstanceBase {
 		constructor(internal) {
@@ -14,6 +15,7 @@ class PixeraInstance extends InstanceBase {
 				...config,
 				...actions,
 				...feedbacks,
+				...opacity,
 			})
 		}
 
@@ -51,6 +53,8 @@ class PixeraInstance extends InstanceBase {
 		self.INDEX_OUTPUT = 0;
 		self.INDEX_RESOURCE = 0;
 		self.INDEX_RESOURCEFOLDER = 0;
+		self.resetOpacityState();
+		self.updateOpacityVariableDefinitions();
 
 		await self.configUpdated(config);
 	}

@@ -4237,6 +4237,7 @@ module.exports = {
 				}
 			},
 		};
+		Object.assign(actions, self.getOpacityActions());
 		//set the actions
 		//self.log('debug', 'set actions')
 		self.setActionDefinitions(actions);
