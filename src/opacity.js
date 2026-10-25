@@ -1,9 +1,10 @@
 const { combineRgb } = require('@companion-module/base');
 
 // reply ids used by the opacity requests, handled in Pixera.processReceivedData
-const ID_LAYER_GETINST = 62;
+const ID_TIMELINE_GETLAYERS = 62;
 const ID_LAYER_GETOPACITY = 63;
 const ID_TIMELINE_GETOPACITY = 64;
+const ID_LAYER_GETNAME = 65;
 
 // a poll reply that left Pixera before our last set would snap the value back,
 // so ignore replies for this long after we changed a value ourselves
@@ -47,14 +48,95 @@ module.exports = {
 		let self = this;
 		//timeline handle -> {opacity, pending, requested, localAt}
 		self.TIMELINE_OPACITY = {};
-		//layer path -> {handle, opacity, pending, requested, localAt}
+		//layer handle -> {opacity, pending, requested, localAt, active}
 		self.LAYER_OPACITY = {};
+		//timeline handle -> layer handles, filled from Pixera.Timelines.Timeline.getLayers
+		self.TIMELINE_LAYERS = {};
+		//layer handle -> {name, timeline}
+		self.LAYER_INFO = {};
 		self.OPACITY_LAST_POLL = 0;
+		clearTimeout(self.OPACITY_REFRESH_TIMER);
+	},
+
+	// timelines without the "Selected Timeline" and empty placeholder entries
+	opacityTimelineChoices() {
+		let self = this;
+		let choices = [];
+		for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
+			let timeline = self.CHOICES_TIMELINEFEEDBACK[i];
+			if (timeline['name'] === '0') continue; //attributes not received yet
+			choices.push({ id: timeline['handle'], label: timeline['name'] });
+		}
+		return choices;
+	},
+
+	layerChoices(timelineHandle) {
+		let self = this;
+		let layers = self.TIMELINE_LAYERS[timelineHandle] || [];
+		return layers.map((handle) => ({
+			id: handle,
+			label: self.LAYER_INFO[handle] ? self.LAYER_INFO[handle].name : 'Layer ' + handle,
+		}));
+	},
+
+	// one layer dropdown per timeline, only the one for the chosen timeline is shown
+	layerDropdowns(visibleWhen) {
+		let self = this;
+		let timelines = self.opacityTimelineChoices();
+		let options = [];
+		for (let i = 0; i < timelines.length; i++) {
+			let choices = self.layerChoices(timelines[i].id);
+			options.push({
+				type: 'dropdown',
+				label: 'Layer',
+				id: 'layer_' + timelines[i].id,
+				default: choices.length > 0 ? choices[0].id : '',
+				choices: choices,
+				// isVisible is sent to the UI as source, so the timeline comes in through isVisibleData
+				isVisible: visibleWhen,
+				isVisibleData: { timeline: timelines[i].id },
+			});
+		}
+		return options;
+	},
+
+	selectedLayer(opt) {
+		let layer = parseInt(opt['layer_' + opt.timeline]);
+		return isNaN(layer) ? null : layer;
+	},
+
+	requestTimelineLayers(timelineHandle) {
+		let self = this;
+		if (!self.pixera || timelineHandle == null || timelineHandle < 0) return;
+		self.pixera.sendParams(ID_TIMELINE_GETLAYERS, 'Pixera.Timelines.Timeline.getLayers', {
+			handle: timelineHandle,
+		});
+	},
+
+	// layers can be added or renamed in Pixera at any time
+	refreshTimelineLayers() {
+		let self = this;
+		for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
+			self.requestTimelineLayers(self.CHOICES_TIMELINEFEEDBACK[i]['handle']);
+		}
+	},
+
+	// layer replies arrive one by one, rebuild the dropdowns once they settle
+	scheduleOpacityRefresh() {
+		let self = this;
+		clearTimeout(self.OPACITY_REFRESH_TIMER);
+		self.OPACITY_REFRESH_TIMER = setTimeout(() => {
+			self.updateActions();
+			self.initFeedbacks();
+			self.updateOpacityVariableDefinitions();
+			self.updateOpacityPresets();
+		}, 200);
 	},
 
 	getOpacityActions() {
 		let self = this;
 		let actions = {};
+		let layerTimelines = self.opacityTimelineChoices();
 
 		actions.timeline_opacity_adjust = {
 			name: 'Timeline Opacity Adjust (Set/Step)',
@@ -115,12 +197,13 @@ module.exports = {
 				'Use Increase on rotate right and Decrease on rotate left of a Stream Deck+ dial',
 			options: [
 				{
-					type: 'textinput',
-					label: 'Layer Path',
-					id: 'layerPath',
-					default: 'Timeline 1.Layer 1',
-					useVariables: true,
+					type: 'dropdown',
+					label: 'Timeline Name',
+					id: 'timeline',
+					default: layerTimelines.length > 0 ? layerTimelines[0].id : '',
+					choices: layerTimelines,
 				},
+				...self.layerDropdowns((options, data) => options.timeline == data.timeline),
 				{
 					type: 'dropdown',
 					label: 'Mode',
@@ -151,12 +234,12 @@ module.exports = {
 			],
 			callback: async (event) => {
 				let opt = event.options;
-				let path = (await self.parseVariablesInString(opt.layerPath)).trim();
-				if (!path) {
-					self.log('warn', 'Layer Opacity: no layer path set');
+				let layer = self.selectedLayer(opt);
+				if (layer == null) {
+					self.log('warn', 'Layer Opacity: no layer selected');
 					return;
 				}
-				self.adjustLayerOpacity(path, self.opacityOperation(opt));
+				self.adjustLayerOpacity(layer, self.opacityOperation(opt));
 			},
 		};
 
@@ -165,9 +248,7 @@ module.exports = {
 
 	getOpacityFeedbacks() {
 		let self = this;
-		let timelineChoices = self.CHOICES_TIMELINENAME.filter(
-			(choice) => choice.id != -1
-		);
+		let timelineChoices = self.opacityTimelineChoices();
 		return {
 			opacity_level: {
 				type: 'boolean',
@@ -193,17 +274,12 @@ module.exports = {
 						type: 'dropdown',
 						label: 'Timeline Name',
 						id: 'timeline',
-						default: 0,
+						default: timelineChoices.length > 0 ? timelineChoices[0].id : '',
 						choices: timelineChoices,
-						isVisible: (options) => options.target == 'timeline',
 					},
-					{
-						type: 'textinput',
-						label: 'Layer Path',
-						id: 'layerPath',
-						default: 'Timeline 1.Layer 1',
-						isVisible: (options) => options.target == 'layer',
-					},
+					...self.layerDropdowns(
+						(options, data) => options.target == 'layer' && options.timeline == data.timeline
+					),
 					{
 						type: 'dropdown',
 						label: 'Condition',
@@ -225,11 +301,12 @@ module.exports = {
 					let opt = feedback.options;
 					let opacity = null;
 					if (opt.target == 'layer') {
-						let path = (opt.layerPath + '').trim();
-						if (!path) return false;
-						let state = self.layerOpacityState(path);
+						let layer = self.selectedLayer(opt);
+						if (layer == null) return false;
+						let state = self.layerOpacityState(layer);
+						state.active = true;
 						if (state.opacity == null) {
-							self.requestLayerOpacity(path);
+							self.requestLayerOpacity(layer);
 							return false;
 						}
 						opacity = state.opacity;
@@ -291,18 +368,18 @@ module.exports = {
 		return self.TIMELINE_OPACITY[handle];
 	},
 
-	layerOpacityState(path) {
+	layerOpacityState(handle) {
 		let self = this;
-		if (!self.LAYER_OPACITY[path]) {
-			self.LAYER_OPACITY[path] = {
-				handle: null,
+		if (!self.LAYER_OPACITY[handle]) {
+			self.LAYER_OPACITY[handle] = {
 				opacity: null,
 				pending: [],
 				requested: false,
 				localAt: 0,
+				active: false,
 			};
 		}
-		return self.LAYER_OPACITY[path];
+		return self.LAYER_OPACITY[handle];
 	},
 
 	adjustTimelineOpacity(handle, op) {
@@ -343,43 +420,39 @@ module.exports = {
 		});
 	},
 
-	adjustLayerOpacity(path, op) {
+	adjustLayerOpacity(handle, op) {
 		let self = this;
-		let state = self.layerOpacityState(path);
-		if (state.handle == null || (op.mode != 'set' && state.opacity == null)) {
+		let state = self.layerOpacityState(handle);
+		// only layers someone controls get polled
+		state.active = true;
+		if (op.mode != 'set' && state.opacity == null) {
 			state.pending.push(op);
-			self.requestLayerOpacity(path);
+			self.requestLayerOpacity(handle);
 			return;
 		}
-		self.setLayerOpacity(path, self.applyOpacityOperation(state.opacity, op));
+		self.setLayerOpacity(handle, self.applyOpacityOperation(state.opacity, op));
 	},
 
-	setLayerOpacity(path, value) {
+	setLayerOpacity(handle, value) {
 		let self = this;
-		let state = self.layerOpacityState(path);
+		let state = self.layerOpacityState(handle);
 		state.opacity = value;
 		state.localAt = Date.now();
 		self.pixera.sendParams(0, 'Pixera.Timelines.Layer.setOpacity', {
-			handle: state.handle,
+			handle: handle,
 			value: value,
 		});
-		self.opacityChanged(self.layerOpacityVariableId(path), path, value);
+		self.opacityChanged(self.layerOpacityVariableId(handle), self.layerName(handle), value);
 	},
 
-	requestLayerOpacity(path) {
+	requestLayerOpacity(handle) {
 		let self = this;
-		let state = self.layerOpacityState(path);
+		let state = self.layerOpacityState(handle);
 		if (state.requested || !self.pixera) return;
 		state.requested = true;
-		if (state.handle == null) {
-			self.pixera.sendParams(ID_LAYER_GETINST, 'Pixera.Timelines.Layer.getInst', {
-				instancePath: path,
-			});
-		} else {
-			self.pixera.sendParams(ID_LAYER_GETOPACITY, 'Pixera.Timelines.Layer.getOpacity', {
-				handle: state.handle,
-			});
-		}
+		self.pixera.sendParams(ID_LAYER_GETOPACITY, 'Pixera.Timelines.Layer.getOpacity', {
+			handle: handle,
+		});
 	},
 
 	pollOpacity() {
@@ -390,9 +463,9 @@ module.exports = {
 		for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
 			self.requestTimelineOpacity(self.CHOICES_TIMELINEFEEDBACK[i]['handle']);
 		}
-		for (let path in self.LAYER_OPACITY) {
-			if (self.LAYER_OPACITY[path].handle != null) {
-				self.requestLayerOpacity(path);
+		for (let handle in self.LAYER_OPACITY) {
+			if (self.LAYER_OPACITY[handle].active) {
+				self.requestLayerOpacity(parseInt(handle));
 			}
 		}
 	},
@@ -403,56 +476,61 @@ module.exports = {
 		let context = jsonData.context || {};
 		let result = jsonData.result;
 		switch (jsonData.id) {
-			case ID_LAYER_GETINST: //Pixera.Timelines.Layer.getInst
+			case ID_TIMELINE_GETLAYERS: //Pixera.Timelines.Timeline.getLayers
 				{
-					let path = context['instancePath'];
-					if (!self.LAYER_OPACITY[path]) {
-						// without a context fall back to the oldest lookup still waiting
-						path = Object.keys(self.LAYER_OPACITY).find(
-							(key) => self.LAYER_OPACITY[key].requested && self.LAYER_OPACITY[key].handle == null
-						);
+					let timeline = context['handle'];
+					if (timeline == null || !Array.isArray(result)) return true;
+					let previous = self.TIMELINE_LAYERS[timeline] || [];
+					self.TIMELINE_LAYERS[timeline] = result;
+					for (let i = 0; i < result.length; i++) {
+						let isNew = !self.LAYER_INFO[result[i]];
+						if (isNew) {
+							self.LAYER_INFO[result[i]] = { name: 'Layer ' + (i + 1), timeline: timeline };
+						}
+						self.pixera.sendParams(ID_LAYER_GETNAME, 'Pixera.Timelines.Layer.getName', {
+							handle: result[i],
+						});
+						// fill the variables once, after that only layers in use are polled
+						if (isNew) self.requestLayerOpacity(result[i]);
 					}
-					let state = self.LAYER_OPACITY[path];
-					if (!state) return true;
-					state.requested = false;
-					if (result == null) {
-						self.log('warn', 'Layer Opacity: no layer found at path "' + path + '"');
-						state.pending = [];
-						return true;
+					if (previous.join(',') !== result.join(',')) {
+						self.scheduleOpacityRefresh();
 					}
-					state.handle = result;
-					self.updateOpacityVariableDefinitions();
-					self.requestLayerOpacity(path);
+				}
+				return true;
+			case ID_LAYER_GETNAME: //Pixera.Timelines.Layer.getName
+				{
+					let info = self.LAYER_INFO[context['handle']];
+					if (!info || result == null || info.name === result) return true;
+					info.name = result;
+					self.scheduleOpacityRefresh();
 				}
 				return true;
 			case ID_LAYER_GETOPACITY: //Pixera.Timelines.Layer.getOpacity
 				{
-					for (let path in self.LAYER_OPACITY) {
-						let state = self.LAYER_OPACITY[path];
-						if (state.handle != context['handle']) continue;
-						state.requested = false;
-						if (result == null) {
-							// the handle went stale (e.g. project reloaded), look it up again next time
-							state.handle = null;
-							state.pending = [];
-							continue;
-						}
-						if (state.pending.length == 0 && Date.now() - state.localAt < LOCAL_CHANGE_HOLD) continue;
-						let value = clamp01(parseFloat(result));
-						let pending = state.pending;
+					let handle = context['handle'];
+					let state = self.LAYER_OPACITY[handle];
+					if (!state) return true;
+					state.requested = false;
+					if (result == null) {
 						state.pending = [];
-						if (pending.length == 0) {
-							if (value !== state.opacity) {
-								state.opacity = value;
-								self.opacityChanged(self.layerOpacityVariableId(path), path, value, true);
-							}
-							continue;
-						}
-						for (let i = 0; i < pending.length; i++) {
-							value = self.applyOpacityOperation(value, pending[i]);
-						}
-						self.setLayerOpacity(path, value);
+						return true;
 					}
+					if (state.pending.length == 0 && Date.now() - state.localAt < LOCAL_CHANGE_HOLD) return true;
+					let value = clamp01(parseFloat(result));
+					let pending = state.pending;
+					state.pending = [];
+					if (pending.length == 0) {
+						if (value !== state.opacity) {
+							state.opacity = value;
+							self.opacityChanged(self.layerOpacityVariableId(handle), self.layerName(handle), value, true);
+						}
+						return true;
+					}
+					for (let i = 0; i < pending.length; i++) {
+						value = self.applyOpacityOperation(value, pending[i]);
+					}
+					self.setLayerOpacity(handle, value);
 				}
 				return true;
 			case ID_TIMELINE_GETOPACITY: //Pixera.Timelines.Timeline.getOpacity
@@ -521,8 +599,18 @@ module.exports = {
 		return null;
 	},
 
-	layerOpacityVariableId(path) {
-		return 'layer_opacity_' + safeId(path);
+	layerName(handle) {
+		let self = this;
+		let info = self.LAYER_INFO[handle];
+		if (!info) return 'Layer ' + handle;
+		return self.timelineName(info.timeline) + ' / ' + info.name;
+	},
+
+	layerOpacityVariableId(handle) {
+		let self = this;
+		let info = self.LAYER_INFO[handle];
+		if (!info) return null;
+		return 'layer_opacity_' + safeId(self.timelineName(info.timeline)) + '_' + safeId(info.name);
 	},
 
 	updateOpacityVariableDefinitions() {
@@ -546,64 +634,73 @@ module.exports = {
 			let state = self.TIMELINE_OPACITY[timeline['handle']];
 			if (state && state.opacity != null) values[id] = toPercent(state.opacity);
 		}
-		for (let path in self.LAYER_OPACITY) {
-			let state = self.LAYER_OPACITY[path];
-			if (state.handle == null) continue;
-			let id = self.layerOpacityVariableId(path);
-			if (seen[id]) continue;
-			seen[id] = true;
-			definitions.push({ variableId: id, name: 'Layer Opacity (%): ' + path });
-			if (state.opacity != null) values[id] = toPercent(state.opacity);
+		for (let timeline in self.TIMELINE_LAYERS) {
+			let layers = self.TIMELINE_LAYERS[timeline];
+			for (let i = 0; i < layers.length; i++) {
+				let id = self.layerOpacityVariableId(layers[i]);
+				if (!id || seen[id]) continue;
+				seen[id] = true;
+				definitions.push({ variableId: id, name: 'Layer Opacity (%): ' + self.layerName(layers[i]) });
+				let state = self.LAYER_OPACITY[layers[i]];
+				if (state && state.opacity != null) values[id] = toPercent(state.opacity);
+			}
 		}
 		self.setVariableDefinitions(definitions);
 		self.setVariableValues(values);
 	},
 
+	opacityDialPreset(name, variable, actionId, target) {
+		let self = this;
+		let action = (mode) => [
+			{ actionId: actionId, options: Object.assign({ mode: mode, value: 100, step: 5 }, target) },
+		];
+		return {
+			type: 'button',
+			category: 'Opacity Dials (Stream Deck+)',
+			name: name + ' opacity dial',
+			style: {
+				text: name + '\n$(' + self.label + ':' + variable + ')%',
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			options: { rotaryActions: true },
+			feedbacks: [],
+			steps: [
+				{
+					// press toggles off/on, turning fades in 5% steps
+					down: action('toggle'),
+					up: [],
+					rotate_left: action('decrease'),
+					rotate_right: action('increase'),
+				},
+			],
+		};
+	},
+
 	updateOpacityPresets() {
 		let self = this;
 		let presets = {};
-		for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
-			let timeline = self.CHOICES_TIMELINEFEEDBACK[i];
-			if (timeline['name'] === '0') continue;
-			let handle = timeline['handle'];
-			let variable = self.timelineOpacityVariableId(handle);
-			presets['timeline_opacity_dial_' + handle] = {
-				type: 'button',
-				category: 'Opacity Dials (Stream Deck+)',
-				name: timeline['name'] + ' opacity dial',
-				style: {
-					text: timeline['name'] + '\n$(' + self.label + ':' + variable + ')%',
-					size: '14',
-					color: combineRgb(255, 255, 255),
-					bgcolor: combineRgb(0, 0, 0),
-				},
-				options: { rotaryActions: true },
-				feedbacks: [],
-				steps: [
-					{
-						// press toggles the timeline off/on, turning fades it in 5% steps
-						down: [
-							{
-								actionId: 'timeline_opacity_adjust',
-								options: { timeline: handle, mode: 'toggle', value: 100, step: 5 },
-							},
-						],
-						up: [],
-						rotate_left: [
-							{
-								actionId: 'timeline_opacity_adjust',
-								options: { timeline: handle, mode: 'decrease', value: 100, step: 5 },
-							},
-						],
-						rotate_right: [
-							{
-								actionId: 'timeline_opacity_adjust',
-								options: { timeline: handle, mode: 'increase', value: 100, step: 5 },
-							},
-						],
-					},
-				],
-			};
+		let timelines = self.opacityTimelineChoices();
+		for (let i = 0; i < timelines.length; i++) {
+			let timeline = timelines[i].id;
+			presets['timeline_opacity_dial_' + timeline] = self.opacityDialPreset(
+				timelines[i].label,
+				self.timelineOpacityVariableId(timeline),
+				'timeline_opacity_adjust',
+				{ timeline: timeline }
+			);
+			let layers = self.TIMELINE_LAYERS[timeline] || [];
+			for (let k = 0; k < layers.length; k++) {
+				let target = { timeline: timeline };
+				target['layer_' + timeline] = layers[k];
+				presets['layer_opacity_dial_' + layers[k]] = self.opacityDialPreset(
+					self.layerName(layers[k]),
+					self.layerOpacityVariableId(layers[k]),
+					'layer_opacity_adjust',
+					target
+				);
+			}
 		}
 		self.setPresetDefinitions(presets);
 	},
