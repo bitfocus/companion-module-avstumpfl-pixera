@@ -4,6 +4,12 @@ const { combineRgb } = require('@companion-module/base');
 const ID_TIMELINE_GETLAYERS = 62;
 const ID_LAYER_GETNAME = 65;
 const ID_LAYER_GETINSTANCEPATH = 66;
+const ID_TIMELINE_GETLAYERSSELECTED = 68;
+// a selection request that got no reply by then is sent again
+const SELECTION_RETRY = 1000;
+
+// dropdown id for "whatever is selected in Pixera"
+const SELECTED = -1;
 
 // a poll reply that left Pixera before our last set would snap the value back,
 // so ignore replies for this long after we changed a value ourselves
@@ -44,6 +50,8 @@ module.exports = {
 		//layer handle -> {name, timeline, path}
 		self.LAYER_INFO = {};
 		self.DIAL_LAST_POLL = 0;
+		//timeline handle -> {waiting: [fn], sentAt}
+		self.LAYER_SELECTION = {};
 		clearTimeout(self.DIAL_REFRESH_TIMER);
 		self.resetOpacityState();
 		self.resetTransformState();
@@ -180,17 +188,19 @@ module.exports = {
 				type: 'dropdown',
 				label: 'Timeline Name',
 				id: 'timeline',
-				default: timelines.length > 0 ? timelines[0].id : '',
-				choices: timelines,
+				default: timelines.length > 0 ? timelines[0].id : SELECTED,
+				choices: timelines.concat([{ id: SELECTED, label: 'Selected Timeline(s)' }]),
 			},
 		];
+		let selectedLayer = { id: SELECTED, label: 'Selected Layer(s)' };
+		timelines = timelines.concat([{ id: SELECTED }]);
 		for (let i = 0; i < timelines.length; i++) {
-			let choices = self.layerChoices(timelines[i].id);
+			let choices = [selectedLayer].concat(timelines[i].id == SELECTED ? [] : self.layerChoices(timelines[i].id));
 			options.push({
 				type: 'dropdown',
 				label: 'Layer',
 				id: 'layer_' + timelines[i].id,
-				default: choices.length > 0 ? choices[0].id : '',
+				default: choices.length > 1 ? choices[1].id : SELECTED,
 				choices: choices,
 				// isVisible is sent to the UI as source, so the timeline comes in through isVisibleData
 				isVisible: visibleWhen || ((options, data) => options.timeline == data.timeline),
@@ -200,9 +210,55 @@ module.exports = {
 		return options;
 	},
 
+	// the one layer picked in the dropdowns, null for none or for "selected"
 	selectedLayer(opt) {
 		let layer = parseInt(opt['layer_' + opt.timeline]);
-		return isNaN(layer) ? null : layer;
+		return isNaN(layer) || layer < 0 ? null : layer;
+	},
+
+	// runs fn for the picked layer, or for every layer selected in Pixera
+	forEachTargetLayer(opt, fn) {
+		let self = this;
+		let timeline = parseInt(opt.timeline);
+		let layer = parseInt(opt['layer_' + opt.timeline]);
+		if (isNaN(timeline) || isNaN(layer)) return false;
+		if (timeline != SELECTED && layer != SELECTED) {
+			fn(layer);
+			return true;
+		}
+		let timelines = timeline == SELECTED ? self.SELECTEDTIMELINES || [] : [timeline];
+		for (let i = 0; i < timelines.length; i++) {
+			self.withSelectedLayers(timelines[i], fn);
+		}
+		return true;
+	},
+
+	// the selection changes in Pixera at any time, so ask for it on every use; turns that come
+	// in while the request is out are applied together, in order, when the reply arrives
+	withSelectedLayers(timeline, fn) {
+		let self = this;
+		if (!self.pixera) return;
+		let selection = self.LAYER_SELECTION[timeline];
+		if (!selection) {
+			selection = self.LAYER_SELECTION[timeline] = { waiting: [], sentAt: 0 };
+		}
+		selection.waiting.push(fn);
+		if (selection.sentAt && Date.now() - selection.sentAt < SELECTION_RETRY) return;
+		selection.sentAt = Date.now();
+		self.pixera.sendParams(ID_TIMELINE_GETLAYERSSELECTED, 'Pixera.Timelines.Timeline.getLayersSelected', {
+			handle: timeline,
+		});
+	},
+
+	// a layer from the selection that discovery hasn't seen yet still needs its name and path
+	ensureLayerInfo(layer, timeline) {
+		let self = this;
+		if (self.LAYER_INFO[layer]) return;
+		self.LAYER_INFO[layer] = { name: 'Layer ' + layer, timeline: timeline, path: null };
+		self.pixera.sendParams(ID_LAYER_GETNAME, 'Pixera.Timelines.Layer.getName', { handle: layer });
+		self.pixera.sendParams(ID_LAYER_GETINSTANCEPATH, 'Pixera.Timelines.Layer.getInstancePath', {
+			handle: layer,
+		});
 	},
 
 	requestTimelineLayers(timelineHandle) {
@@ -270,6 +326,25 @@ module.exports = {
 					}
 					if (previous.join(',') !== result.join(',')) {
 						self.scheduleDialRefresh();
+					}
+				}
+				return true;
+			case ID_TIMELINE_GETLAYERSSELECTED: //Pixera.Timelines.Timeline.getLayersSelected
+				{
+					let timeline = context['handle'];
+					let selection = self.LAYER_SELECTION[timeline];
+					if (!selection) return true;
+					let waiting = selection.waiting;
+					selection.waiting = [];
+					selection.sentAt = 0;
+					if (!Array.isArray(result)) return true;
+					for (let i = 0; i < result.length; i++) {
+						self.ensureLayerInfo(result[i], timeline);
+					}
+					for (let k = 0; k < waiting.length; k++) {
+						for (let i = 0; i < result.length; i++) {
+							waiting[k](result[i]);
+						}
 					}
 				}
 				return true;
@@ -362,6 +437,8 @@ module.exports = {
 		self.setVariableValues(values);
 	},
 
+	SELECTED: SELECTED,
+
 	dialPreset(category, name, variable, unit, dial, actionId, options, fine, coarse) {
 		let self = this;
 		let step = (mode) => [
@@ -397,6 +474,25 @@ module.exports = {
 		};
 	},
 
+	selectedLayerPresets(category) {
+		let self = this;
+		let presets = {};
+		let options = { timeline: SELECTED };
+		options['layer_' + SELECTED] = SELECTED;
+		presets['selected_opacity_dial'] = self.dialPreset(
+			category,
+			'Selected Opacity',
+			'dial_last_value',
+			'',
+			'selected_opacity',
+			'layer_opacity_adjust',
+			options,
+			1,
+			10
+		);
+		return Object.assign(presets, self.selectedTransformPresets(category));
+	},
+
 	updateDialPresets() {
 		let self = this;
 		let presets = {};
@@ -410,6 +506,8 @@ module.exports = {
 				Object.assign(presets, self.transformPresets(category, timeline, layers[k]));
 			}
 		}
+		// whatever is selected in Pixera, shown through the "last changed" variables
+		Object.assign(presets, self.selectedLayerPresets('Dials (Stream Deck+): Selected Layer'));
 		self.setPresetDefinitions(presets);
 	},
 };

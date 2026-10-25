@@ -110,12 +110,10 @@ module.exports = {
 			subscribe: (action) => self.registerDial(action.options.dial),
 			callback: async (event) => {
 				let opt = event.options;
-				let layer = self.selectedLayer(opt);
-				if (layer == null) {
+				let op = self.opacityOperation(opt);
+				if (!self.forEachTargetLayer(opt, (layer) => self.adjustLayerOpacity(layer, op))) {
 					self.log('warn', 'Layer Opacity: no layer selected');
-					return;
 				}
-				self.adjustLayerOpacity(layer, self.opacityOperation(opt));
 			},
 		};
 

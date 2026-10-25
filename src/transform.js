@@ -83,11 +83,6 @@ module.exports = {
 				},
 				callback: async (event) => {
 					let opt = event.options;
-					let layer = self.selectedLayer(opt);
-					if (layer == null) {
-						self.log('warn', 'Layer ' + transform.label + ': no layer selected');
-						return;
-					}
 					let op;
 					if (opt.mode == 'set') {
 						op = { mode: 'set', value: parseFloat(opt.value) || 0 };
@@ -96,8 +91,13 @@ module.exports = {
 						op = { mode: 'step', value: opt.mode == 'decrease' ? -step : step };
 					}
 					let axesToChange = opt.axis == 'all' ? AXES : [opt.axis];
-					for (let i = 0; i < axesToChange.length; i++) {
-						self.adjustTransform(layer, kind, axesToChange[i], op);
+					let found = self.forEachTargetLayer(opt, (layer) => {
+						for (let i = 0; i < axesToChange.length; i++) {
+							self.adjustTransform(layer, kind, axesToChange[i], op);
+						}
+					});
+					if (!found) {
+						self.log('warn', 'Layer ' + transform.label + ': no layer selected');
 					}
 				},
 			};
@@ -256,6 +256,36 @@ module.exports = {
 			});
 		}
 		return list;
+	},
+
+	selectedTransformPresets(category) {
+		let self = this;
+		let presets = {};
+		let dials = [
+			{ kind: 'position', axis: 'X' },
+			{ kind: 'position', axis: 'Y' },
+			{ kind: 'scale', axis: 'all' },
+			{ kind: 'rotation', axis: 'Z' },
+		];
+		for (let i = 0; i < dials.length; i++) {
+			let dial = dials[i];
+			let transform = TRANSFORMS[dial.kind];
+			let options = { timeline: self.SELECTED, axis: dial.axis };
+			options['layer_' + self.SELECTED] = self.SELECTED;
+			let axisLabel = dial.axis == 'all' ? '' : ' ' + dial.axis;
+			presets['selected_' + dial.kind + '_' + dial.axis.toLowerCase() + '_dial'] = self.dialPreset(
+				category,
+				'Selected ' + transform.label.replace(' (Scale)', '') + axisLabel,
+				'dial_last_value',
+				'',
+				'selected_' + dial.kind + '_' + dial.axis.toLowerCase(),
+				'layer_' + dial.kind + '_adjust',
+				options,
+				transform.fine,
+				transform.coarse
+			);
+		}
+		return presets;
 	},
 
 	transformPresets(category, timeline, layer) {
