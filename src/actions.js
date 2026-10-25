@@ -4237,7 +4237,7 @@ module.exports = {
 				}
 			},
 		};
-		Object.assign(actions, self.getOpacityActions());
+		Object.assign(actions, self.getDialActions());
 		//set the actions
 		//self.log('debug', 'set actions')
 		self.setActionDefinitions(actions);

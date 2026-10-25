@@ -326,7 +326,7 @@ class Pixera {
 				handle: self.CHOICES_LIVESYSTEMHANDLE[i],
 			});
 		}
-		self.pollOpacity();
+		self.pollDials();
 	}
 	initLiveSystems() {
 		let self = this.instance;
@@ -395,7 +395,7 @@ class Pixera {
 		self.INDEX_OUTPUT = 0;
 		self.INDEX_RESOURCE = 0;
 		self.INDEX_RESOURCEFOLDER = 0;
-		self.resetOpacityState();
+		self.resetDialState();
 	}
 	initScreens() {
 		let self = this.instance;
@@ -410,7 +410,7 @@ class Pixera {
 				self.log('debug', 'id is missing in rec data: ' + data);
 				return;
 			}
-			if (self.handleOpacityReply(jsonData)) {
+			if (self.handleDialReply(jsonData)) {
 				return;
 			}
 			switch (jsonData.id) {
@@ -478,7 +478,7 @@ class Pixera {
 						self.updateActions();
 						self.requestTimelineLayers(handle);
 						// feedbacks, variables and presets need the timeline names too
-						self.scheduleOpacityRefresh();
+						self.scheduleDialRefresh();
 					}
 					break;
 				case 13: //Pixera.Screens.getScreens

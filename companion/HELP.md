@@ -23,6 +23,8 @@ Nativ implementation using Pixera JSON/TCP Api
 * Timeline Fade Opacity			(StartOpacityAnimation)
 * Timeline Opacity Adjust		(set, increase/decrease by step, toggle 0/100%)
 * Layer Opacity Adjust			(pick Timeline, then Layer; set, increase/decrease by step, toggle 0/100%)
+* Layer Position / Size (Scale) / Rotation Adjust	(pick Timeline, Layer and axis; set, increase/decrease by step; Size can scale all axes together)
+* Dial Sensitivity			(switch a dial between its fine and coarse step)
 * Layer Reset
 * Layer Mute/VolumeMute
 * Layer Paramter
@@ -37,14 +39,18 @@ Nativ implementation using Pixera JSON/TCP Api
 * Button Style Timeline/Layer Opacity Level
 
 ** Stream Deck+ Dials
-* Put Opacity Adjust with Decrease on rotate left and Increase on rotate right, and Toggle on press
-* Presets: Opacity Dials (Stream Deck+) has a ready-made dial for every timeline and layer
+* Put an Adjust action with Decrease on rotate left and Increase on rotate right
+* Put Dial Sensitivity on press to switch between the fine and coarse step; give the dial the same Dial Name in all its actions
+* Presets: Dials (Stream Deck+) has ready-made dials per timeline: timeline opacity, and per layer opacity, position X/Y, size and rotation Z
 * Steps are applied from the module's own copy of the value, so fast turns stay smooth
+* Position, size and rotation use the Pixera parameter paths <layer>.Position.X, <layer>.Scale.X, <layer>.Rotation.X (and Y, Z)
 
 ** Variables
 * `timeline_opacity_<timeline name>` in percent, for every timeline
-* `layer_opacity_<timeline name>_<layer name>` in percent, for every layer
-* `opacity_last_name` / `opacity_last_value`: the last timeline or layer changed from Companion
+* `layer_<timeline name>_<layer name>_opacity` in percent, for every layer
+* `layer_<timeline name>_<layer name>_position_x` (and `_y`, `_z`, `scale_*`, `rotation_*`) for parameters used on a button
+* `dial_<dial name>_sensitivity`: fine or coarse
+* `dial_last_name` / `dial_last_value`: the last timeline or layer parameter changed from Companion
 * Changes made in Pixera itself show up when polling is enabled
 
 ** Response
