@@ -44,7 +44,7 @@ Nativ implementation using Pixera JSON/TCP Api
 * Put Dial Sensitivity on press to switch between the fine and coarse step; give the dial the same Dial Name in all its actions
 * Presets: Dials (Stream Deck+) has ready-made dials per timeline: timeline opacity, and per layer opacity, position X/Y, size and rotation Z, plus a set of dials for the selected layer
 * Steps are applied from the module's own copy of the value, so fast turns stay smooth
-* Position, size and rotation use the Pixera parameter paths <layer>.Position.X, <layer>.Scale.X, <layer>.Rotation.X (and Y, Z)
+* Position, size and rotation use the x/y/z parameters of the layer's Position, Scale (or Size) and Rotation nodes (API rev 481)
 
 ** Variables
 * `timeline_opacity_<timeline name>` in percent, for every timeline

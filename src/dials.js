@@ -3,7 +3,6 @@ const { combineRgb } = require('@companion-module/base');
 // reply ids used by the dial requests, handled in Pixera.processReceivedData
 const ID_TIMELINE_GETLAYERS = 62;
 const ID_LAYER_GETNAME = 65;
-const ID_LAYER_GETINSTANCEPATH = 66;
 const ID_TIMELINE_GETLAYERSSELECTED = 68;
 // a selection request that got no reply by then is sent again
 const SELECTION_RETRY = 1000;
@@ -47,7 +46,7 @@ module.exports = {
 		let self = this;
 		//timeline handle -> layer handles, filled from Pixera.Timelines.Timeline.getLayers
 		self.TIMELINE_LAYERS = {};
-		//layer handle -> {name, timeline, path}
+		//layer handle -> {name, timeline}
 		self.LAYER_INFO = {};
 		self.DIAL_LAST_POLL = 0;
 		//timeline handle -> {waiting: [fn], sentAt}
@@ -250,15 +249,12 @@ module.exports = {
 		});
 	},
 
-	// a layer from the selection that discovery hasn't seen yet still needs its name and path
+	// a layer from the selection that discovery hasn't seen yet still needs its name
 	ensureLayerInfo(layer, timeline) {
 		let self = this;
 		if (self.LAYER_INFO[layer]) return;
-		self.LAYER_INFO[layer] = { name: 'Layer ' + layer, timeline: timeline, path: null };
+		self.LAYER_INFO[layer] = { name: 'Layer ' + layer, timeline: timeline };
 		self.pixera.sendParams(ID_LAYER_GETNAME, 'Pixera.Timelines.Layer.getName', { handle: layer });
-		self.pixera.sendParams(ID_LAYER_GETINSTANCEPATH, 'Pixera.Timelines.Layer.getInstancePath', {
-			handle: layer,
-		});
 	},
 
 	requestTimelineLayers(timelineHandle) {
@@ -313,12 +309,9 @@ module.exports = {
 					for (let i = 0; i < result.length; i++) {
 						let isNew = !self.LAYER_INFO[result[i]];
 						if (isNew) {
-							self.LAYER_INFO[result[i]] = { name: 'Layer ' + (i + 1), timeline: timeline, path: null };
+							self.LAYER_INFO[result[i]] = { name: 'Layer ' + (i + 1), timeline: timeline };
 						}
 						self.pixera.sendParams(ID_LAYER_GETNAME, 'Pixera.Timelines.Layer.getName', {
-							handle: result[i],
-						});
-						self.pixera.sendParams(ID_LAYER_GETINSTANCEPATH, 'Pixera.Timelines.Layer.getInstancePath', {
 							handle: result[i],
 						});
 						// fill the variables once, after that only layers in use are polled
@@ -354,17 +347,6 @@ module.exports = {
 					if (!info || result == null || info.name === result) return true;
 					info.name = result;
 					self.scheduleDialRefresh();
-				}
-				return true;
-			case ID_LAYER_GETINSTANCEPATH: //Pixera.Timelines.Layer.getInstancePath
-				{
-					let info = self.LAYER_INFO[context['handle']];
-					if (!info) return true;
-					// older Pixera versions without getInstancePath: build it from the names
-					if (result == null) result = self.timelineName(info.timeline) + '.' + info.name;
-					if (info.path === result) return true;
-					info.path = result;
-					self.layerPathChanged(context['handle']);
 				}
 				return true;
 		}

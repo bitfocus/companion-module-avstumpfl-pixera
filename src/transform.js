@@ -1,12 +1,16 @@
-// reply id used by the transform requests, handled through dials.handleDialReply
+// reply ids used by the transform requests, handled through dials.handleDialReply
 const ID_PARAM_GETVALUE = 67;
+const ID_LAYER_GETNODES = 69;
+const ID_NODE_GETNAME = 70;
+const ID_NODE_GETPARAMETERS = 71;
+const ID_PARAM_GETNAME = 72;
 
-// layer parameter names appended to the layer's instance path,
-// e.g. "Timeline 1.Layer 1" + ".Position.X"
+// the layer's nodes as named in the timeline UI, each with x/y/z parameters below it
+// (Pixera shows "Size" instead of "Scale" when that is set in the general settings)
 const TRANSFORMS = {
-	position: { label: 'Position', param: 'Position', fine: 0.01, coarse: 0.1 },
-	scale: { label: 'Size (Scale)', param: 'Scale', fine: 0.01, coarse: 0.1 },
-	rotation: { label: 'Rotation', param: 'Rotation', fine: 1, coarse: 10 },
+	position: { label: 'Position', nodes: ['position'], fine: 0.01, coarse: 0.1 },
+	scale: { label: 'Size (Scale)', nodes: ['scale', 'size'], fine: 0.01, coarse: 0.1 },
+	rotation: { label: 'Rotation', nodes: ['rotation'], fine: 1, coarse: 10 },
 };
 const AXES = ['X', 'Y', 'Z'];
 
@@ -25,6 +29,11 @@ module.exports = {
 		let self = this;
 		//"layer:kind:axis" -> {layer, kind, axis, value, pending, requested, localAt, active}
 		self.TRANSFORM_VALUES = {};
+		//layer handle -> {requested, params: {"kind:axis": param handle}}
+		self.LAYER_PARAMS = {};
+		//node handle -> {layer, kind}, param handle -> {layer, kind}
+		self.TRANSFORM_NODES = {};
+		self.TRANSFORM_PARAMS = {};
 	},
 
 	getTransformActions() {
@@ -123,11 +132,26 @@ module.exports = {
 		return self.TRANSFORM_VALUES[key];
 	},
 
-	transformPath(state) {
+	transformParam(state) {
 		let self = this;
-		let info = self.LAYER_INFO[state.layer];
-		if (!info || !info.path) return null;
-		return info.path + '.' + TRANSFORMS[state.kind].param + '.' + state.axis;
+		let layerParams = self.LAYER_PARAMS[state.layer];
+		if (!layerParams) return null;
+		return layerParams.params[state.kind + ':' + state.axis] || null;
+	},
+
+	// finds the x/y/z parameters of the Position, Scale/Size and Rotation nodes of a layer:
+	// Layer.getNodes -> Node.getName -> Node.getParameters -> Param.getName
+	resolveLayerParams(layer) {
+		let self = this;
+		if (!self.pixera) return;
+		let layerParams = self.LAYER_PARAMS[layer];
+		if (!layerParams) {
+			layerParams = self.LAYER_PARAMS[layer] = { requested: 0, params: {} };
+		}
+		// ask again after a while in case a reply got lost or the layer changed
+		if (Date.now() - layerParams.requested < 5000) return;
+		layerParams.requested = Date.now();
+		self.pixera.sendParams(ID_LAYER_GETNODES, 'Pixera.Timelines.Layer.getNodes', { handle: layer });
 	},
 
 	adjustTransform(layer, kind, axis, op) {
@@ -138,11 +162,7 @@ module.exports = {
 		state.active = true;
 		if (firstUse) self.scheduleDialRefresh(); //adds the variable
 		// steps work from our own cache so fast turns don't wait for a round trip each time
-		if (state.value == null || !self.transformPath(state)) {
-			if (op.mode == 'set' && self.transformPath(state)) {
-				self.setTransform(state, op.value);
-				return;
-			}
+		if (!self.transformParam(state) || (op.mode != 'set' && state.value == null)) {
 			state.pending.push(op);
 			self.requestTransform(state);
 			return;
@@ -154,8 +174,8 @@ module.exports = {
 		let self = this;
 		state.value = round(value);
 		state.localAt = Date.now();
-		self.pixera.sendParams(0, 'Pixera.Compound.setParamValue', {
-			path: self.transformPath(state),
+		self.pixera.sendParams(0, 'Pixera.Timelines.Param.setValue', {
+			handle: self.transformParam(state),
 			value: state.value,
 		});
 		self.transformChanged(state, false);
@@ -163,22 +183,24 @@ module.exports = {
 
 	requestTransform(state) {
 		let self = this;
-		let path = self.transformPath(state);
-		// without the instance path yet, layerPathChanged sends this once it arrives
-		if (state.requested || !self.pixera || !path) return;
+		if (!self.pixera) return;
+		let param = self.transformParam(state);
+		// without the parameter handle yet, the discovery replies send this once it is known
+		if (!param) {
+			self.resolveLayerParams(state.layer);
+			return;
+		}
+		if (state.requested) return;
 		state.requested = true;
-		self.pixera.sendParams(ID_PARAM_GETVALUE, 'Pixera.Compound.getParamValue', {
-			path: path,
-		});
+		self.pixera.sendParams(ID_PARAM_GETVALUE, 'Pixera.Timelines.Param.getValue', { handle: param });
 	},
 
-	layerPathChanged(layer) {
+	transformParamFound(layer, kind, axis) {
 		let self = this;
-		for (let key in self.TRANSFORM_VALUES) {
-			let state = self.TRANSFORM_VALUES[key];
-			if (state.layer != layer) continue;
+		let state = self.TRANSFORM_VALUES[layer + ':' + kind + ':' + axis];
+		if (state && (state.active || state.pending.length > 0)) {
 			state.requested = false;
-			if (state.active || state.pending.length > 0) self.requestTransform(state);
+			self.requestTransform(state);
 		}
 	},
 
@@ -194,21 +216,69 @@ module.exports = {
 	// returns true when the reply id belongs to the transform requests
 	handleTransformReply(jsonData) {
 		let self = this;
-		if (jsonData.id != ID_PARAM_GETVALUE) return false;
-		let path = (jsonData.context || {})['path'];
+		let handle = (jsonData.context || {})['handle'];
+		let result = jsonData.result;
+		switch (jsonData.id) {
+			case ID_LAYER_GETNODES: //Pixera.Timelines.Layer.getNodes
+				if (Array.isArray(result)) {
+					for (let i = 0; i < result.length; i++) {
+						self.TRANSFORM_NODES[result[i]] = { layer: handle, kind: null };
+						self.pixera.sendParams(ID_NODE_GETNAME, 'Pixera.Timelines.Node.getName', { handle: result[i] });
+					}
+				}
+				return true;
+			case ID_NODE_GETNAME: //Pixera.Timelines.Node.getName
+				{
+					let node = self.TRANSFORM_NODES[handle];
+					if (!node || result == null) return true;
+					let name = (result + '').trim().toLowerCase();
+					for (let kind in TRANSFORMS) {
+						if (TRANSFORMS[kind].nodes.includes(name)) node.kind = kind;
+					}
+					if (node.kind) {
+						self.pixera.sendParams(ID_NODE_GETPARAMETERS, 'Pixera.Timelines.Node.getParameters', {
+							handle: handle,
+						});
+					}
+				}
+				return true;
+			case ID_NODE_GETPARAMETERS: //Pixera.Timelines.Node.getParameters
+				{
+					let node = self.TRANSFORM_NODES[handle];
+					if (!node || !Array.isArray(result)) return true;
+					for (let i = 0; i < result.length; i++) {
+						self.TRANSFORM_PARAMS[result[i]] = { layer: node.layer, kind: node.kind };
+						self.pixera.sendParams(ID_PARAM_GETNAME, 'Pixera.Timelines.Param.getName', { handle: result[i] });
+					}
+				}
+				return true;
+			case ID_PARAM_GETNAME: //Pixera.Timelines.Param.getName
+				{
+					let param = self.TRANSFORM_PARAMS[handle];
+					if (!param || result == null) return true;
+					let axis = (result + '').trim().toUpperCase();
+					if (!AXES.includes(axis)) return true;
+					let layerParams = self.LAYER_PARAMS[param.layer];
+					if (!layerParams) return true;
+					layerParams.params[param.kind + ':' + axis] = handle;
+					self.transformParamFound(param.layer, param.kind, axis);
+				}
+				return true;
+			case ID_PARAM_GETVALUE: //Pixera.Timelines.Param.getValue
+				break;
+			default:
+				return false;
+		}
 		for (let key in self.TRANSFORM_VALUES) {
 			let state = self.TRANSFORM_VALUES[key];
-			if (self.transformPath(state) !== path) continue;
+			if (self.transformParam(state) !== handle) continue;
 			state.requested = false;
-			if (jsonData.result == null) {
-				if (state.pending.length > 0) {
-					self.log('warn', 'Layer parameter not found in Pixera: ' + path);
-				}
+			if (result == null || isNaN(parseFloat(result))) {
 				state.pending = [];
 				continue;
 			}
 			if (state.pending.length == 0 && Date.now() - state.localAt < self.LOCAL_CHANGE_HOLD) continue;
-			let value = parseFloat(jsonData.result);
+			let value = parseFloat(result);
 			let pending = state.pending;
 			state.pending = [];
 			if (pending.length == 0) {
