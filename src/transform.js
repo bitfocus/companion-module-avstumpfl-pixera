@@ -9,10 +9,11 @@ const ID_PARAM_GETNAME = 72;
 // (Pixera shows "Size" instead of "Scale" when that is set in the general settings)
 const TRANSFORMS = {
 	position: { label: 'Position', nodes: ['position'], fine: 1, coarse: 10 }, //pixels with "show dims in pixels"
-	scale: { label: 'Size (Scale)', nodes: ['scale', 'size'], fine: 0.01, coarse: 0.1 },
+	scale: { label: 'Size (Scale)', nodes: ['scale', 'size'], fine: 1, coarse: 10 }, //absolute pixels in the Pixera UI
 	rotation: { label: 'Rotation', nodes: ['rotation'], fine: 1, coarse: 10 },
 };
 const AXES = ['X', 'Y', 'Z'];
+const UNIFORM_AXES = ['X', 'Y'];
 
 const MODE_CHOICES = [
 	{ id: 'set', label: 'Set to value' },
@@ -34,6 +35,8 @@ module.exports = {
 		//node handle -> {layer, kind}, param handle -> {layer, kind}
 		self.TRANSFORM_NODES = {};
 		self.TRANSFORM_PARAMS = {};
+		//layer handle -> uniform scale operations waiting for the x/y values
+		self.UNIFORM_PENDING = {};
 	},
 
 	getTransformActions() {
@@ -42,7 +45,7 @@ module.exports = {
 		for (let kind in TRANSFORMS) {
 			let transform = TRANSFORMS[kind];
 			let axes = AXES.map((axis) => ({ id: axis, label: axis }));
-			if (kind == 'scale') axes.push({ id: 'all', label: 'All axes (uniform)' });
+			if (kind == 'scale') axes.push({ id: 'all', label: 'X and Y (keep aspect ratio)' });
 			actions['layer_' + kind + '_adjust'] = {
 				name: 'Layer ' + transform.label + ' Adjust (Set/Step)',
 				description:
@@ -67,7 +70,7 @@ module.exports = {
 						type: 'number',
 						label: 'Value',
 						id: 'value',
-						default: kind == 'scale' ? 1 : 0,
+						default: kind == 'scale' ? 100 : 0,
 						min: -100000,
 						max: 100000,
 						step: 0.001,
@@ -80,7 +83,7 @@ module.exports = {
 					// show the current value as soon as the action is on a button
 					let layer = self.selectedLayer(action.options);
 					if (layer == null || !AXES.concat('all').includes(action.options.axis)) return;
-					let axesInUse = action.options.axis == 'all' ? AXES : [action.options.axis];
+					let axesInUse = action.options.axis == 'all' ? UNIFORM_AXES : [action.options.axis];
 					for (let i = 0; i < axesInUse.length; i++) {
 						let state = self.transformState(layer, kind, axesInUse[i]);
 						if (!state.active) {
@@ -99,10 +102,11 @@ module.exports = {
 						let step = self.currentStep(opt);
 						op = { mode: 'step', value: opt.mode == 'decrease' ? -step : step };
 					}
-					let axesToChange = opt.axis == 'all' ? AXES : [opt.axis];
 					let found = self.forEachTargetLayer(opt, (layer) => {
-						for (let i = 0; i < axesToChange.length; i++) {
-							self.adjustTransform(layer, kind, axesToChange[i], op);
+						if (opt.axis == 'all') {
+							self.adjustUniformScale(layer, op);
+						} else {
+							self.adjustTransform(layer, kind, opt.axis, op);
 						}
 					});
 					if (!found) {
@@ -168,6 +172,50 @@ module.exports = {
 			return;
 		}
 		self.setTransform(state, op.mode == 'set' ? op.value : state.value + op.value);
+	},
+
+	// size is in absolute pixels, so the step goes on x and y follows by the same factor;
+	// z (depth) is left alone
+	adjustUniformScale(layer, op) {
+		let self = this;
+		let states = UNIFORM_AXES.map((axis) => self.transformState(layer, 'scale', axis));
+		let firstUse = false;
+		for (let i = 0; i < states.length; i++) {
+			if (!states[i].active) firstUse = true;
+			states[i].active = true;
+		}
+		if (firstUse) self.scheduleDialRefresh(); //adds the variables
+		if (!self.UNIFORM_PENDING[layer]) self.UNIFORM_PENDING[layer] = [];
+		self.UNIFORM_PENDING[layer].push(op);
+		if (!self.flushUniformScale(layer)) {
+			for (let i = 0; i < states.length; i++) self.requestTransform(states[i]);
+		}
+	},
+
+	// applies the waiting uniform operations once x and y are known
+	flushUniformScale(layer) {
+		let self = this;
+		let pending = self.UNIFORM_PENDING[layer];
+		if (!pending || pending.length == 0) return true;
+		let states = UNIFORM_AXES.map((axis) => self.transformState(layer, 'scale', axis));
+		for (let i = 0; i < states.length; i++) {
+			if (!self.transformParam(states[i]) || states[i].value == null) return false;
+		}
+		self.UNIFORM_PENDING[layer] = [];
+		let values = states.map((state) => state.value);
+		for (let k = 0; k < pending.length; k++) {
+			let op = pending[k];
+			let x = values[0];
+			let target = op.mode == 'set' ? op.value : x + op.value;
+			let factor = x != 0 ? target / x : null;
+			values = values.map((value) =>
+				factor != null ? value * factor : op.mode == 'set' ? op.value : value + op.value
+			);
+		}
+		for (let i = 0; i < states.length; i++) {
+			if (round(values[i]) !== states[i].value) self.setTransform(states[i], values[i]);
+		}
+		return true;
 	},
 
 	setTransform(state, value) {
@@ -286,6 +334,7 @@ module.exports = {
 					state.value = round(value);
 					self.transformChanged(state, true);
 				}
+				if (state.kind == 'scale') self.flushUniformScale(state.layer);
 				continue;
 			}
 			for (let i = 0; i < pending.length; i++) {

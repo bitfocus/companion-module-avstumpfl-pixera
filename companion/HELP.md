@@ -23,7 +23,7 @@ Nativ implementation using Pixera JSON/TCP Api
 * Timeline Fade Opacity			(StartOpacityAnimation)
 * Timeline Opacity Adjust		(set, increase/decrease by step, toggle 0/100%)
 * Layer Opacity Adjust			(pick Timeline, then Layer; set, increase/decrease by step, toggle 0/100%)
-* Layer Position / Size (Scale) / Rotation Adjust	(pick Timeline, Layer and axis; set, increase/decrease by step; Size can scale all axes together)
+* Layer Position / Size (Scale) / Rotation Adjust	(pick Timeline, Layer and axis; set, increase/decrease by step; Size can change X and Y together keeping the aspect ratio)
 * Dial Sensitivity			(switch a dial between its fine and coarse step)
 * Layer dropdowns also offer Selected Layer(s), and the Timeline dropdown Selected Timeline(s): the action then works on whatever is selected in Pixera
 * Layer Reset
