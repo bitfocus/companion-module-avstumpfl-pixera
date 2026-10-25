@@ -562,8 +562,7 @@ module.exports = {
 				bgcolor: combineRgb(0, 0, 0),
 			},
 			options: { rotaryActions: true },
-			// the display turns orange while the dial is on its coarse step
-			feedbacks: [{ feedbackId: 'dial_coarse', options: { dial: dial }, style: COARSE_STYLE }],
+			feedbacks: [],
 			steps: [
 				{
 					// press switches between fine and coarse steps, turning changes the value
@@ -596,6 +595,54 @@ module.exports = {
 		return Object.assign(presets, self.selectedTransformPresets(category));
 	},
 
+	// a plain button showing what the dial shows, orange on the coarse step; pressing it switches too
+	dialDisplayPreset(id, dial) {
+		let toggle = dial.steps[0].down;
+		let result = {};
+		result[id + '_display'] = {
+			type: 'button',
+			category: dial.category,
+			name: dial.name + ' (display below dial)',
+			style: Object.assign({}, dial.style),
+			feedbacks: [{ feedbackId: 'dial_coarse', options: { dial: toggle[0].options.dial }, style: COARSE_STYLE }],
+			steps: [{ down: toggle, up: [] }],
+		};
+		return result;
+	},
+
+	// buttons that only show things, e.g. for the display strip of a Stream Deck+ XL
+	displayPresets(category) {
+		let self = this;
+		let v = (id) => '$(' + self.label + ':' + id + ')';
+		let display = (name, text, feedbacks, down) => ({
+			type: 'button',
+			category: category,
+			name: name,
+			style: { text: text, size: 'auto', color: combineRgb(255, 255, 255), bgcolor: combineRgb(0, 0, 0) },
+			feedbacks: feedbacks || [],
+			steps: [{ down: down || [], up: [] }],
+		});
+		let presets = {};
+		presets['display_selected_layer'] = display(
+			'Selected timeline and layer',
+			v('selected_timeline') + '\n' + v('selected_layer')
+		);
+		presets['display_selected_values'] = display(
+			'Selected layer values',
+			v('selected_layer') +
+				'\nOp ' + v('selected_opacity') + '%' +
+				'\nX ' + v('selected_position_x') + ' Y ' + v('selected_position_y') +
+				'\nSize ' + v('selected_scale_x') + ' Rot ' + v('selected_rotation_z')
+		);
+		presets['display_sensitivity_custom'] = display(
+			'Fine/coarse of any dial (set its Dial Name)',
+			'dial1\n' + v(self.dialVariableId('dial1')),
+			[{ feedbackId: 'dial_coarse', options: { dial: 'dial1' }, style: COARSE_STYLE }],
+			[{ actionId: 'dial_sensitivity', options: { dial: 'dial1', sensitivity: 'toggle' } }]
+		);
+		return presets;
+	},
+
 	updateDialPresets() {
 		let self = this;
 		let presets = {};
@@ -611,6 +658,11 @@ module.exports = {
 		}
 		// whatever is selected in Pixera, shown through the "last changed" variables
 		Object.assign(presets, self.selectedLayerPresets('Dials (Stream Deck+): Selected Layer'));
+		// every dial gets a display button to put below it (e.g. the display strip of a Stream Deck+ XL)
+		for (let id in presets) {
+			Object.assign(presets, self.dialDisplayPreset(id, presets[id]));
+		}
+		Object.assign(presets, self.displayPresets('Dials (Stream Deck+): Selected Layer'));
 		self.setPresetDefinitions(presets);
 	},
 };

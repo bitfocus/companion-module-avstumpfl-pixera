@@ -38,12 +38,14 @@ Nativ implementation using Pixera JSON/TCP Api
 * Button Text Timeline Remain
 * Button Color Live System State (requires polling to be enabled)
 * Button Style Timeline/Layer Opacity Level
-* Button Style Dial Sensitivity is Coarse (the dial presets turn orange on the coarse step)
+* Button Style Dial Sensitivity is Coarse (used by the "Displays" presets, e.g. for the Stream Deck+ XL display strip)
 
 ** Stream Deck+ Dials
 * Put an Adjust action with Decrease on rotate left and Increase on rotate right
 * Put Dial Sensitivity on press to switch between the fine and coarse step; give the dial the same Dial Name in all its actions
 * Presets: Dials (Stream Deck+) has ready-made dials per timeline: timeline opacity, and per layer opacity, position X/Y, size and rotation Z, plus a set of dials for the selected layer
+* Every dial preset has a matching display preset for the button below it (e.g. the display strip of a Stream Deck+ XL): same text, orange on the coarse step, press switches fine/coarse
+* Display presets for the selected layer show the selected timeline, layer and its values
 * Steps are applied from the module's own copy of the value, so fast turns stay smooth
 * Position, size and rotation use the x/y/z parameters of the layer's Position, Scale (or Size) and Rotation nodes (API rev 481)
 
