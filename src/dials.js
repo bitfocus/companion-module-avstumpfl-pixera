@@ -9,6 +9,9 @@ const SELECTION_RETRY = 1000;
 
 // dropdown id for "whatever is selected in Pixera"
 const SELECTED = -1;
+// the selected timelines are polled every 100ms; their selected layers don't need to be asked that often
+const SELECTION_POLL_INTERVAL = 250;
+const COARSE_STYLE = { color: combineRgb(0, 0, 0), bgcolor: combineRgb(255, 140, 0) };
 
 // a poll reply that left Pixera before our last set would snap the value back,
 // so ignore replies for this long after we changed a value ourselves
@@ -51,6 +54,12 @@ module.exports = {
 		self.DIAL_LAST_POLL = 0;
 		//timeline handle -> {waiting: [fn], sentAt}
 		self.LAYER_SELECTION = {};
+		//timeline handle -> layer handles last reported as selected, for the selection variables
+		self.SELECTED_LAYERS_BY_TIMELINE = {};
+		//first selected layer, its values are shown in the selected_* variables
+		self.SELECTED_FIRST = null;
+		self.SELECTION_LAST_POLL = 0;
+		self.SELECTION_LAST_TIMELINES = null;
 		clearTimeout(self.DIAL_REFRESH_TIMER);
 		self.resetOpacityState();
 		self.resetTransformState();
@@ -90,6 +99,7 @@ module.exports = {
 				let values = {};
 				values[self.dialVariableId(dial)] = next;
 				self.setVariableValues(values);
+				self.checkFeedbacks('dial_coarse');
 			},
 		};
 		Object.assign(actions, self.getOpacityActions(), self.getTransformActions());
@@ -98,7 +108,26 @@ module.exports = {
 
 	getDialFeedbacks() {
 		let self = this;
-		return Object.assign({}, self.getOpacityFeedbacks());
+		return Object.assign(
+			{
+				dial_coarse: {
+					type: 'boolean',
+					name: 'Dial Sensitivity is Coarse',
+					description: 'Change the button style while a dial uses its coarse step',
+					defaultStyle: COARSE_STYLE,
+					options: [
+						{
+							type: 'textinput',
+							label: 'Dial Name (same as in the dial actions)',
+							id: 'dial',
+							default: 'dial1',
+						},
+					],
+					callback: (feedback) => self.DIAL_SENSITIVITY[(feedback.options.dial + '').trim()] == 'coarse',
+				},
+			},
+			self.getOpacityFeedbacks()
+		);
 	},
 
 	// options for increase/decrease: one step for fine, one for coarse, and the dial they follow
@@ -249,6 +278,84 @@ module.exports = {
 		});
 	},
 
+	// keeps the selected_* variables following the selection in Pixera
+	selectionPolled() {
+		let self = this;
+		let now = Date.now();
+		if (!self.pixera || now - self.SELECTION_LAST_POLL < SELECTION_POLL_INTERVAL) return;
+		self.SELECTION_LAST_POLL = now;
+		let timelines = self.SELECTEDTIMELINES || [];
+		for (let i = 0; i < timelines.length; i++) {
+			let selection = self.LAYER_SELECTION[timelines[i]];
+			if (!selection) {
+				selection = self.LAYER_SELECTION[timelines[i]] = { waiting: [], sentAt: 0 };
+			}
+			if (selection.sentAt && now - selection.sentAt < SELECTION_RETRY) continue;
+			selection.sentAt = now;
+			self.pixera.sendParams(ID_TIMELINE_GETLAYERSSELECTED, 'Pixera.Timelines.Timeline.getLayersSelected', {
+				handle: timelines[i],
+			});
+		}
+		if (timelines.join(',') !== self.SELECTION_LAST_TIMELINES) {
+			self.SELECTION_LAST_TIMELINES = timelines.join(',');
+			self.updateSelectionVariables();
+		}
+	},
+
+	selectedLayerList() {
+		let self = this;
+		let list = [];
+		let timelines = self.SELECTEDTIMELINES || [];
+		for (let i = 0; i < timelines.length; i++) {
+			list = list.concat(self.SELECTED_LAYERS_BY_TIMELINE[timelines[i]] || []);
+		}
+		return list;
+	},
+
+	updateSelectionVariables() {
+		let self = this;
+		let timelines = self.SELECTEDTIMELINES || [];
+		let layers = self.selectedLayerList();
+		let first = layers.length > 0 ? layers[0] : null;
+		let values = {
+			selected_timeline: timelines.length > 0 ? timelines.map((t) => self.timelineName(t)).join(', ') : '-',
+			selected_layer:
+				layers.length > 0
+					? layers.map((l) => (self.LAYER_INFO[l] ? self.LAYER_INFO[l].name : 'Layer ' + l)).join(', ')
+					: '-',
+			selected_layer_count: layers.length,
+		};
+		if (first !== self.SELECTED_FIRST) {
+			self.SELECTED_FIRST = first;
+			// read the new layer's values right away instead of waiting for the next poll
+			if (first != null) self.requestSelectedValues();
+		}
+		Object.assign(values, self.selectedValueVariables());
+		self.setVariableValues(values);
+	},
+
+	requestSelectedValues() {
+		let self = this;
+		if (self.SELECTED_FIRST == null) return;
+		self.requestLayerOpacity(self.SELECTED_FIRST);
+		self.requestSelectedTransforms(self.SELECTED_FIRST);
+	},
+
+	// called when a layer value changed, so the selected_* variables stay current
+	selectedLayerValueChanged(layer) {
+		let self = this;
+		if (layer == null || layer !== self.SELECTED_FIRST) return;
+		self.setVariableValues(self.selectedValueVariables());
+	},
+
+	selectedValueVariables() {
+		let self = this;
+		return Object.assign(
+			self.selectedOpacityVariables(self.SELECTED_FIRST),
+			self.selectedTransformVariables(self.SELECTED_FIRST)
+		);
+	},
+
 	// a layer from the selection that discovery hasn't seen yet still needs its name
 	ensureLayerInfo(layer, timeline) {
 		let self = this;
@@ -292,6 +399,8 @@ module.exports = {
 		self.DIAL_LAST_POLL = now;
 		self.pollOpacity();
 		self.pollTransforms();
+		// the selected layer is shown in the selected_* variables even when no button controls it
+		self.requestSelectedValues();
 	},
 
 	// returns true when the reply id belongs to the dial requests
@@ -334,6 +443,9 @@ module.exports = {
 					for (let i = 0; i < result.length; i++) {
 						self.ensureLayerInfo(result[i], timeline);
 					}
+					let previous = self.SELECTED_LAYERS_BY_TIMELINE[timeline] || [];
+					self.SELECTED_LAYERS_BY_TIMELINE[timeline] = result;
+					if (previous.join(',') !== result.join(',')) self.updateSelectionVariables();
 					for (let k = 0; k < waiting.length; k++) {
 						for (let i = 0; i < result.length; i++) {
 							waiting[k](result[i]);
@@ -347,6 +459,7 @@ module.exports = {
 					if (!info || result == null || info.name === result) return true;
 					info.name = result;
 					self.scheduleDialRefresh();
+					self.updateSelectionVariables();
 				}
 				return true;
 		}
@@ -396,6 +509,11 @@ module.exports = {
 		let definitions = [
 			{ variableId: 'dial_last_name', name: 'Dial: last changed timeline/layer parameter' },
 			{ variableId: 'dial_last_value', name: 'Dial: last changed value' },
+			{ variableId: 'selected_timeline', name: 'Selected timeline(s) in Pixera' },
+			{ variableId: 'selected_layer', name: 'Selected layer(s) in Pixera' },
+			{ variableId: 'selected_layer_count', name: 'Number of selected layers' },
+			...self.selectedOpacityDefinitions(),
+			...self.selectedTransformDefinitions(),
 		];
 		let values = {};
 		for (let dial in self.DIAL_SENSITIVITY) {
@@ -421,7 +539,8 @@ module.exports = {
 
 	SELECTED: SELECTED,
 
-	dialPreset(category, name, variable, unit, dial, actionId, options, fine, coarse) {
+	// title: first line on the display, defaults to the preset name
+	dialPreset(category, name, variable, unit, dial, actionId, options, fine, coarse, title) {
 		let self = this;
 		let step = (mode) => [
 			{
@@ -435,7 +554,7 @@ module.exports = {
 			name: name,
 			style: {
 				text:
-					name +
+					(title || name) +
 					'\n$(' + self.label + ':' + variable + ')' + unit +
 					'\n$(' + self.label + ':' + self.dialVariableId(dial) + ')',
 				size: 'auto',
@@ -443,7 +562,8 @@ module.exports = {
 				bgcolor: combineRgb(0, 0, 0),
 			},
 			options: { rotaryActions: true },
-			feedbacks: [],
+			// the display turns orange while the dial is on its coarse step
+			feedbacks: [{ feedbackId: 'dial_coarse', options: { dial: dial }, style: COARSE_STYLE }],
 			steps: [
 				{
 					// press switches between fine and coarse steps, turning changes the value
@@ -464,13 +584,14 @@ module.exports = {
 		presets['selected_opacity_dial'] = self.dialPreset(
 			category,
 			'Selected Opacity',
-			'dial_last_value',
-			'',
+			'selected_opacity',
+			'%',
 			'selected_opacity',
 			'layer_opacity_adjust',
 			options,
 			1,
-			10
+			10,
+			'$(' + self.label + ':selected_layer) Opacity'
 		);
 		return Object.assign(presets, self.selectedTransformPresets(category));
 	},

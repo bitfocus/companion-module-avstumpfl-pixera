@@ -299,6 +299,7 @@ module.exports = {
 			value: value,
 		});
 		self.opacityChanged(self.layerOpacityVariableId(handle), self.layerName(handle) + ' Opacity', value);
+		self.selectedLayerValueChanged(handle);
 	},
 
 	requestLayerOpacity(handle) {
@@ -360,8 +361,10 @@ module.exports = {
 						self.LAYER_OPACITY[handle],
 						jsonData.result,
 						(value) => self.setLayerOpacity(handle, value),
-						(value) =>
-							self.opacityChanged(self.layerOpacityVariableId(handle), self.layerName(handle) + ' Opacity', value, true)
+						(value) => {
+							self.opacityChanged(self.layerOpacityVariableId(handle), self.layerName(handle) + ' Opacity', value, true);
+							self.selectedLayerValueChanged(handle);
+						}
 					);
 				}
 				return true;
@@ -400,6 +403,16 @@ module.exports = {
 		let self = this;
 		let prefix = self.layerVariablePrefix(handle);
 		return prefix ? prefix + '_opacity' : null;
+	},
+
+	selectedOpacityDefinitions() {
+		return [{ variableId: 'selected_opacity', name: 'Selected layer opacity (%)' }];
+	},
+
+	selectedOpacityVariables(layer) {
+		let self = this;
+		let state = layer != null ? self.LAYER_OPACITY[layer] : null;
+		return { selected_opacity: state && state.opacity != null ? toPercent(state.opacity) : '-' };
 	},
 
 	// {variableId, name, value} for every timeline and layer

@@ -38,6 +38,7 @@ Nativ implementation using Pixera JSON/TCP Api
 * Button Text Timeline Remain
 * Button Color Live System State (requires polling to be enabled)
 * Button Style Timeline/Layer Opacity Level
+* Button Style Dial Sensitivity is Coarse (the dial presets turn orange on the coarse step)
 
 ** Stream Deck+ Dials
 * Put an Adjust action with Decrease on rotate left and Increase on rotate right
@@ -51,6 +52,8 @@ Nativ implementation using Pixera JSON/TCP Api
 * `layer_<timeline name>_<layer name>_opacity` in percent, for every layer
 * `layer_<timeline name>_<layer name>_position_x` (and `_y`, `_z`, `scale_*`, `rotation_*`) for parameters used on a button
 * `dial_<dial name>_sensitivity`: fine or coarse
+* `selected_timeline`, `selected_layer`, `selected_layer_count`: what is selected in Pixera
+* `selected_opacity`, `selected_position_x` (and the other position, scale and rotation axes): values of the first selected layer
 * `dial_last_name` / `dial_last_value`: the last timeline or layer parameter changed from Companion
 * Changes made in Pixera itself show up when polling is enabled
 

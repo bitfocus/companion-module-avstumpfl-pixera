@@ -246,7 +246,7 @@ module.exports = {
 	transformParamFound(layer, kind, axis) {
 		let self = this;
 		let state = self.TRANSFORM_VALUES[layer + ':' + kind + ':' + axis];
-		if (state && (state.active || state.pending.length > 0)) {
+		if (state && (state.active || state.pending.length > 0 || layer === self.SELECTED_FIRST)) {
 			state.requested = false;
 			self.requestTransform(state);
 		}
@@ -353,12 +353,47 @@ module.exports = {
 
 	transformChanged(state, fromPoll) {
 		let self = this;
+		self.selectedLayerValueChanged(state.layer);
 		self.dialValueChanged(
 			self.transformVariableId(state),
 			self.layerName(state.layer) + ' ' + TRANSFORMS[state.kind].label + ' ' + state.axis,
 			state.value,
 			fromPoll
 		);
+	},
+
+	requestSelectedTransforms(layer) {
+		let self = this;
+		for (let kind in TRANSFORMS) {
+			for (let i = 0; i < AXES.length; i++) {
+				self.requestTransform(self.transformState(layer, kind, AXES[i]));
+			}
+		}
+	},
+
+	selectedTransformDefinitions() {
+		let list = [];
+		for (let kind in TRANSFORMS) {
+			for (let i = 0; i < AXES.length; i++) {
+				list.push({
+					variableId: 'selected_' + kind + '_' + AXES[i].toLowerCase(),
+					name: 'Selected layer ' + TRANSFORMS[kind].label + ' ' + AXES[i],
+				});
+			}
+		}
+		return list;
+	},
+
+	selectedTransformVariables(layer) {
+		let self = this;
+		let values = {};
+		for (let kind in TRANSFORMS) {
+			for (let i = 0; i < AXES.length; i++) {
+				let state = layer != null ? self.TRANSFORM_VALUES[layer + ':' + kind + ':' + AXES[i]] : null;
+				values['selected_' + kind + '_' + AXES[i].toLowerCase()] = state && state.value != null ? state.value : '-';
+			}
+		}
+		return values;
 	},
 
 	// {variableId, name, value} for the parameters in use; 9 per layer would flood the list
@@ -395,13 +430,14 @@ module.exports = {
 			presets['selected_' + dial.kind + '_' + dial.axis.toLowerCase() + '_dial'] = self.dialPreset(
 				category,
 				'Selected ' + transform.label.replace(' (Scale)', '') + axisLabel,
-				'dial_last_value',
+				'selected_' + dial.kind + '_' + (dial.axis == 'all' ? 'x' : dial.axis.toLowerCase()),
 				'',
 				'selected_' + dial.kind + '_' + dial.axis.toLowerCase(),
 				'layer_' + dial.kind + '_adjust',
 				options,
 				transform.fine,
-				transform.coarse
+				transform.coarse,
+				'$(' + self.label + ':selected_layer) ' + transform.label.replace(' (Scale)', '') + axisLabel
 			);
 		}
 		return presets;

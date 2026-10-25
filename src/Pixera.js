@@ -1123,6 +1123,7 @@ class Pixera {
 						var result = jsonData.result;
 						if (result != null) {
 							self.SELECTEDTIMELINES = result;
+							self.selectionPolled();
 						}
 					}
 					break;
