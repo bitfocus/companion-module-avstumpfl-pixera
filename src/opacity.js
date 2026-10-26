@@ -312,6 +312,28 @@ module.exports = {
 		});
 	},
 
+	// value text for the dial_value feedback; asks Pixera when nothing is known yet
+	timelineOpacityText(handle) {
+		let self = this;
+		let state = self.timelineOpacityState(handle);
+		if (state.opacity == null) {
+			self.requestTimelineOpacity(handle);
+			return '-';
+		}
+		return toPercent(state.opacity) + '%';
+	},
+
+	layerOpacityText(handle, keep) {
+		let self = this;
+		let state = self.layerOpacityState(handle);
+		if (keep) state.active = true;
+		if (state.opacity == null) {
+			self.requestLayerOpacity(handle);
+			return '-';
+		}
+		return toPercent(state.opacity) + '%';
+	},
+
 	pollOpacity() {
 		let self = this;
 		for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {

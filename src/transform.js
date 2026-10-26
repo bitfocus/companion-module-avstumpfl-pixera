@@ -4,6 +4,7 @@ const ID_LAYER_GETNODES = 69;
 const ID_NODE_GETNAME = 70;
 const ID_NODE_GETPARAMETERS = 71;
 const ID_PARAM_GETNAME = 72;
+const ID_NODE_GETVALUES = 73;
 
 // the layer's nodes as named in the timeline UI, each with x/y/z parameters below it
 // (Pixera shows "Size" instead of "Scale" when that is set in the general settings)
@@ -13,6 +14,8 @@ const TRANSFORMS = {
 	rotation: { label: 'Rotation', nodes: ['rotation'], fine: 1, coarse: 10 },
 };
 const AXES = ['X', 'Y', 'Z'];
+// parameter names as Pixera may show them below a node
+const AXIS_NAMES = { X: 'X', Y: 'Y', Z: 'Z', W: 'X', H: 'Y', D: 'Z', WIDTH: 'X', HEIGHT: 'Y', DEPTH: 'Z' };
 const UNIFORM_AXES = ['X', 'Y'];
 
 const MODE_CHOICES = [
@@ -30,7 +33,8 @@ module.exports = {
 		let self = this;
 		//"layer:kind:axis" -> {layer, kind, axis, value, pending, requested, localAt, active}
 		self.TRANSFORM_VALUES = {};
-		//layer handle -> {requested, params: {"kind:axis": param handle}}
+		//layer handle -> {requested, params: {"kind:axis": param handle}, index: {"kind:axis": position below the node},
+		//                 nodes: {kind: node handle}, scaleValues: last Node.getValues of the size node}
 		self.LAYER_PARAMS = {};
 		//node handle -> {layer, kind}, param handle -> {layer, kind}
 		self.TRANSFORM_NODES = {};
@@ -150,7 +154,7 @@ module.exports = {
 		if (!self.pixera) return;
 		let layerParams = self.LAYER_PARAMS[layer];
 		if (!layerParams) {
-			layerParams = self.LAYER_PARAMS[layer] = { requested: 0, params: {} };
+			layerParams = self.LAYER_PARAMS[layer] = { requested: 0, params: {}, index: {}, nodes: {}, scaleValues: null };
 		}
 		// ask again after a while in case a reply got lost or the layer changed
 		if (Date.now() - layerParams.requested < 5000) return;
@@ -222,11 +226,32 @@ module.exports = {
 		let self = this;
 		state.value = round(value);
 		state.localAt = Date.now();
-		self.pixera.sendParams(0, 'Pixera.Timelines.Param.setValue', {
-			handle: self.transformParam(state),
-			value: state.value,
-		});
+		let node = self.sizeNode(state);
+		if (node) {
+			// Param.setValue takes the size as a scale factor; Node.setValues takes the pixels the UI shows
+			let layerParams = self.LAYER_PARAMS[state.layer];
+			layerParams.scaleValues[layerParams.index[state.kind + ':' + state.axis]] = state.value;
+			self.pixera.sendParams(0, 'Pixera.Timelines.Node.setValues', {
+				handle: node,
+				values: layerParams.scaleValues.slice(),
+			});
+		} else {
+			self.pixera.sendParams(0, 'Pixera.Timelines.Param.setValue', {
+				handle: self.transformParam(state),
+				value: state.value,
+			});
+		}
 		self.transformChanged(state, false);
+	},
+
+	// the Size/Scale node handle once its values have been read, null for everything else
+	sizeNode(state) {
+		let self = this;
+		if (state.kind != 'scale') return null;
+		let layerParams = self.LAYER_PARAMS[state.layer];
+		if (!layerParams || !layerParams.nodes.scale || !Array.isArray(layerParams.scaleValues)) return null;
+		let index = layerParams.index[state.kind + ':' + state.axis];
+		return index != null && index < layerParams.scaleValues.length ? layerParams.nodes.scale : null;
 	},
 
 	requestTransform(state) {
@@ -240,6 +265,18 @@ module.exports = {
 		}
 		if (state.requested) return;
 		state.requested = true;
+		let layerParams = self.LAYER_PARAMS[state.layer];
+		if (state.kind == 'scale' && layerParams.nodes.scale) {
+			// one read gives x, y and z of the size in pixels
+			for (let i = 0; i < AXES.length; i++) {
+				let other = self.TRANSFORM_VALUES[state.layer + ':scale:' + AXES[i]];
+				if (other) other.requested = true;
+			}
+			self.pixera.sendParams(ID_NODE_GETVALUES, 'Pixera.Timelines.Node.getValues', {
+				handle: layerParams.nodes.scale,
+			});
+			return;
+		}
 		self.pixera.sendParams(ID_PARAM_GETVALUE, 'Pixera.Timelines.Param.getValue', { handle: param });
 	},
 
@@ -280,10 +317,15 @@ module.exports = {
 					let node = self.TRANSFORM_NODES[handle];
 					if (!node || result == null) return true;
 					let name = (result + '').trim().toLowerCase();
+					node.name = result + '';
 					for (let kind in TRANSFORMS) {
-						if (TRANSFORMS[kind].nodes.includes(name)) node.kind = kind;
+						if (TRANSFORMS[kind].nodes.some((entry) => name == entry || name.includes(entry))) node.kind = kind;
 					}
-					if (node.kind) {
+					let layerParams = self.LAYER_PARAMS[node.layer];
+					if (node.kind && layerParams) {
+						// the first matching node wins, e.g. "Size" before a later "Size Offset"
+						if (layerParams.nodes[node.kind] && layerParams.nodes[node.kind] !== handle) return true;
+						layerParams.nodes[node.kind] = handle;
 						self.pixera.sendParams(ID_NODE_GETPARAMETERS, 'Pixera.Timelines.Node.getParameters', {
 							handle: handle,
 						});
@@ -295,7 +337,7 @@ module.exports = {
 					let node = self.TRANSFORM_NODES[handle];
 					if (!node || !Array.isArray(result)) return true;
 					for (let i = 0; i < result.length; i++) {
-						self.TRANSFORM_PARAMS[result[i]] = { layer: node.layer, kind: node.kind };
+						self.TRANSFORM_PARAMS[result[i]] = { layer: node.layer, kind: node.kind, index: i, node: node.name };
 						self.pixera.sendParams(ID_PARAM_GETNAME, 'Pixera.Timelines.Param.getName', { handle: result[i] });
 					}
 				}
@@ -304,45 +346,113 @@ module.exports = {
 				{
 					let param = self.TRANSFORM_PARAMS[handle];
 					if (!param || result == null) return true;
-					let axis = (result + '').trim().toUpperCase();
-					if (!AXES.includes(axis)) return true;
+					let axis = AXIS_NAMES[(result + '').trim().toUpperCase()];
 					let layerParams = self.LAYER_PARAMS[param.layer];
 					if (!layerParams) return true;
-					layerParams.params[param.kind + ':' + axis] = handle;
+					if (!axis) {
+						if (param.kind == 'scale') {
+							self.log('info', self.layerName(param.layer) + ': ignoring ' + param.node + ' parameter "' + result + '"');
+						}
+						return true;
+					}
+					let key = param.kind + ':' + axis;
+					// the size is the one that differs between Pixera setups, so it is logged for support
+					if (param.kind == 'scale' && layerParams.params[key] !== handle) {
+						self.log(
+							'info',
+							self.layerName(param.layer) + ': ' + TRANSFORMS[param.kind].label + ' ' + axis +
+								' is ' + param.node + ' / ' + result
+						);
+					}
+					layerParams.params[key] = handle;
+					layerParams.index[key] = param.index;
 					self.transformParamFound(param.layer, param.kind, axis);
 				}
 				return true;
+			case ID_NODE_GETVALUES: //Pixera.Timelines.Node.getValues of the size node
+				{
+					let node = self.TRANSFORM_NODES[handle];
+					let layerParams = node ? self.LAYER_PARAMS[node.layer] : null;
+					if (!layerParams) return true;
+					if (!Array.isArray(result)) {
+						// no node values: fall back to reading the parameters one by one
+						self.log('info', self.layerName(node.layer) + ': no values from ' + node.name + ', using its parameters');
+						layerParams.nodes.scale = null;
+						for (let i = 0; i < AXES.length; i++) {
+							let state = self.TRANSFORM_VALUES[node.layer + ':scale:' + AXES[i]];
+							if (state) {
+								state.requested = false;
+								if (state.active || state.pending.length > 0) self.requestTransform(state);
+							}
+						}
+						return true;
+					}
+					if (!layerParams.scaleValues) {
+						self.log('info', self.layerName(node.layer) + ': ' + node.name + ' values ' + JSON.stringify(result));
+					}
+					layerParams.scaleValues = result.map((value) => parseFloat(value));
+					for (let i = 0; i < AXES.length; i++) {
+						let state = self.TRANSFORM_VALUES[node.layer + ':scale:' + AXES[i]];
+						let index = layerParams.index['scale:' + AXES[i]];
+						if (!state) continue;
+						// an axis whose parameter name isn't known yet is read again once it is
+						if (index == null) state.requested = false;
+						else self.transformValueReply(state, result[index]);
+					}
+				}
+				return true;
 			case ID_PARAM_GETVALUE: //Pixera.Timelines.Param.getValue
-				break;
+				for (let key in self.TRANSFORM_VALUES) {
+					let state = self.TRANSFORM_VALUES[key];
+					if (self.transformParam(state) === handle) self.transformValueReply(state, result);
+				}
+				return true;
 			default:
 				return false;
 		}
-		for (let key in self.TRANSFORM_VALUES) {
-			let state = self.TRANSFORM_VALUES[key];
-			if (self.transformParam(state) !== handle) continue;
-			state.requested = false;
-			if (result == null || isNaN(parseFloat(result))) {
-				state.pending = [];
-				continue;
-			}
-			if (state.pending.length == 0 && Date.now() - state.localAt < self.LOCAL_CHANGE_HOLD) continue;
-			let value = parseFloat(result);
-			let pending = state.pending;
+	},
+
+	// a read value: fills the cache, or applies the steps that waited for it
+	transformValueReply(state, result) {
+		let self = this;
+		state.requested = false;
+		if (result == null || isNaN(parseFloat(result))) {
 			state.pending = [];
-			if (pending.length == 0) {
-				if (round(value) !== state.value) {
-					state.value = round(value);
-					self.transformChanged(state, true);
-				}
-				if (state.kind == 'scale') self.flushUniformScale(state.layer);
-				continue;
-			}
-			for (let i = 0; i < pending.length; i++) {
-				value = pending[i].mode == 'set' ? pending[i].value : value + pending[i].value;
-			}
-			self.setTransform(state, value);
+			return;
 		}
-		return true;
+		if (state.pending.length == 0 && Date.now() - state.localAt < self.LOCAL_CHANGE_HOLD) return;
+		let value = parseFloat(result);
+		let pending = state.pending;
+		state.pending = [];
+		if (pending.length == 0) {
+			if (round(value) !== state.value) {
+				state.value = round(value);
+				self.transformChanged(state, true);
+			}
+			if (state.kind == 'scale') self.flushUniformScale(state.layer);
+			return;
+		}
+		for (let i = 0; i < pending.length; i++) {
+			value = pending[i].mode == 'set' ? pending[i].value : value + pending[i].value;
+		}
+		self.setTransform(state, value);
+	},
+
+	// value text for the dial_value feedback, "x x y" for the size of both axes
+	transformText(layer, kind, axis, keep) {
+		let self = this;
+		let axes = axis == 'all' ? UNIFORM_AXES : AXES.includes(axis) ? [axis] : ['X'];
+		return axes
+			.map((entry) => {
+				let state = self.transformState(layer, kind, entry);
+				if (keep) state.active = true;
+				if (state.value == null) {
+					self.requestTransform(state);
+					return '-';
+				}
+				return state.value;
+			})
+			.join(' x ');
 	},
 
 	transformVariableId(state) {

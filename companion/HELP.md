@@ -39,15 +39,18 @@ Nativ implementation using Pixera JSON/TCP Api
 * Button Color Live System State (requires polling to be enabled)
 * Button Style Timeline/Layer Opacity Level
 * Button Style Dial Sensitivity is Coarse (used by the "Displays" presets, e.g. for the Stream Deck+ XL display strip)
+* Button Text Dial Value: shows the value of the timeline/layer parameter picked on that button (name, value, fine/coarse), so every button shows its own value
 
 ** Stream Deck+ Dials
 * Put an Adjust action with Decrease on rotate left and Increase on rotate right
 * Put Dial Sensitivity on press to switch between the fine and coarse step; give the dial the same Dial Name in all its actions
 * Presets: Dials (Stream Deck+) has ready-made dials per timeline: timeline opacity, and per layer opacity, position X/Y, size and rotation Z, plus a set of dials for the selected layer
-* Every dial preset has a matching display preset for the button below it (e.g. the display strip of a Stream Deck+ XL): same text, orange on the coarse step, press switches fine/coarse
+* Dial presets show their own value through the Dial Value feedback
+* Every dial preset has a matching display preset for the button below it (e.g. the display strip of a Stream Deck+ XL): same value text, orange on the coarse step, press switches fine/coarse
 * Display presets for the selected layer show the selected timeline, layer and its values
 * Steps are applied from the module's own copy of the value, so fast turns stay smooth
 * Position, size and rotation use the x/y/z parameters of the layer's Position, Scale (or Size) and Rotation nodes (API rev 481)
+* Size is read and written through the node values (Node.getValues/setValues), which are in the pixels the Pixera UI shows; the log lists the Size parameters found per layer
 
 ** Variables
 * `timeline_opacity_<timeline name>` in percent, for every timeline
@@ -56,7 +59,7 @@ Nativ implementation using Pixera JSON/TCP Api
 * `dial_<dial name>_sensitivity`: fine or coarse
 * `selected_timeline`, `selected_layer`, `selected_layer_count`: what is selected in Pixera
 * `selected_opacity`, `selected_position_x` (and the other position, scale and rotation axes): values of the first selected layer
-* `dial_last_name` / `dial_last_value`: the last timeline or layer parameter changed from Companion
+* `dial_last_name` / `dial_last_value`: the last timeline or layer parameter changed from Companion (one for all buttons; use the Dial Value feedback for a value per button)
 * Changes made in Pixera itself show up when polling is enabled
 
 ** Response

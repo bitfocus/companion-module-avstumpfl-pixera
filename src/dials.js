@@ -25,6 +25,15 @@ const SENSITIVITY_CHOICES = [
 	{ id: 'coarse', label: 'Coarse' },
 ];
 
+// what a dial_value feedback shows, and the dial action that changes it
+const VALUE_TARGETS = [
+	{ id: 'layer_opacity', label: 'Layer Opacity', short: 'Opacity', action: 'layer_opacity_adjust' },
+	{ id: 'timeline_opacity', label: 'Timeline Opacity', short: 'Opacity', action: 'timeline_opacity_adjust' },
+	{ id: 'position', label: 'Layer Position', short: 'Pos', action: 'layer_position_adjust' },
+	{ id: 'scale', label: 'Layer Size (Scale)', short: 'Size', action: 'layer_scale_adjust' },
+	{ id: 'rotation', label: 'Layer Rotation', short: 'Rot', action: 'layer_rotation_adjust' },
+];
+
 function safeId(name) {
 	return (name + '')
 		.toLowerCase()
@@ -99,7 +108,7 @@ module.exports = {
 				let values = {};
 				values[self.dialVariableId(dial)] = next;
 				self.setVariableValues(values);
-				self.checkFeedbacks('dial_coarse');
+				self.checkFeedbacks('dial_coarse', 'dial_value');
 			},
 		};
 		Object.assign(actions, self.getOpacityActions(), self.getTransformActions());
@@ -124,6 +133,50 @@ module.exports = {
 						},
 					],
 					callback: (feedback) => self.DIAL_SENSITIVITY[(feedback.options.dial + '').trim()] == 'coarse',
+				},
+				dial_value: {
+					type: 'advanced',
+					name: 'Dial Value (text for this button)',
+					description:
+						'Shows the current value of one timeline/layer parameter on this button, with the fine/coarse step of its dial',
+					options: [
+						{
+							type: 'dropdown',
+							label: 'Value',
+							id: 'target',
+							default: 'layer_opacity',
+							choices: VALUE_TARGETS.map((target) => ({ id: target.id, label: target.label })),
+						},
+						...self.timelineLayerOptions(
+							(options, data) => options.target != 'timeline_opacity' && options.timeline == data.timeline
+						),
+						{
+							type: 'dropdown',
+							label: 'Axis',
+							id: 'axis',
+							default: 'X',
+							choices: [
+								{ id: 'X', label: 'X' },
+								{ id: 'Y', label: 'Y' },
+								{ id: 'Z', label: 'Z' },
+								{ id: 'all', label: 'X and Y (size)' },
+							],
+							isVisible: (options) => ['position', 'scale', 'rotation'].includes(options.target),
+						},
+						{
+							type: 'textinput',
+							label: 'First Line (empty: layer or timeline name)',
+							id: 'label',
+							default: '',
+						},
+						{
+							type: 'textinput',
+							label: 'Dial Name (shows fine/coarse, empty: hide)',
+							id: 'dial',
+							default: 'dial1',
+						},
+					],
+					callback: (feedback) => ({ text: self.dialValueText(feedback.options) }),
 				},
 			},
 			self.getOpacityFeedbacks()
@@ -332,6 +385,7 @@ module.exports = {
 		}
 		Object.assign(values, self.selectedValueVariables());
 		self.setVariableValues(values);
+		self.checkFeedbacks('dial_value');
 	},
 
 	requestSelectedValues() {
@@ -346,6 +400,7 @@ module.exports = {
 		let self = this;
 		if (layer == null || layer !== self.SELECTED_FIRST) return;
 		self.setVariableValues(self.selectedValueVariables());
+		self.checkFeedbacks('dial_value');
 	},
 
 	selectedValueVariables() {
@@ -478,6 +533,69 @@ module.exports = {
 			values['dial_last_value'] = value;
 		}
 		self.setVariableValues(values);
+		self.checkFeedbacks('dial_value');
+	},
+
+	// the layer a button shows: the chosen one, or the first selected one
+	displayLayer(opt) {
+		let self = this;
+		let layer = self.selectedLayer(opt);
+		if (layer != null) return layer;
+		let timeline = parseInt(opt.timeline);
+		let layers =
+			isNaN(timeline) || timeline == SELECTED
+				? self.selectedLayerList()
+				: self.SELECTED_LAYERS_BY_TIMELINE[timeline] || [];
+		return layers.length > 0 ? layers[0] : null;
+	},
+
+	// text of a dial_value feedback: name, value, fine/coarse; each button shows its own target
+	dialValueText(opt) {
+		let self = this;
+		let target = VALUE_TARGETS.find((entry) => entry.id == opt.target) || VALUE_TARGETS[0];
+		let name;
+		let value;
+		if (target.id == 'timeline_opacity') {
+			let timeline = parseInt(opt.timeline);
+			if (timeline == SELECTED) timeline = (self.SELECTEDTIMELINES || [])[0];
+			if (timeline == null || isNaN(timeline)) {
+				name = 'no timeline';
+				value = '-';
+			} else {
+				name = self.timelineName(timeline);
+				value = self.timelineOpacityText(timeline);
+			}
+		} else {
+			let layer = self.displayLayer(opt);
+			// a fixed layer keeps being polled, the selected one is polled anyway
+			let keep = self.selectedLayer(opt) != null;
+			if (layer == null) {
+				name = 'no layer';
+				value = '-';
+			} else {
+				name = self.LAYER_INFO[layer] ? self.LAYER_INFO[layer].name : 'Layer ' + layer;
+				value =
+					target.id == 'layer_opacity'
+						? self.layerOpacityText(layer, keep)
+						: self.transformText(layer, target.id, opt.axis, keep);
+			}
+		}
+		let label = (opt.label + '').trim();
+		let short = target.short;
+		if (['position', 'rotation'].includes(target.id) || (target.id == 'scale' && opt.axis != 'all')) {
+			short += ' ' + opt.axis;
+		}
+		let lines = [label || name, short + ' ' + value];
+		let dial = (opt.dial + '').trim();
+		if (dial) lines.push(self.DIAL_SENSITIVITY[dial] || 'fine');
+		return lines.join('\n');
+	},
+
+	// dial_value options that show what a dial action changes
+	dialValueOptions(actionId, options, dial) {
+		let target = VALUE_TARGETS.find((entry) => entry.action == actionId);
+		if (!target) return null;
+		return Object.assign({ axis: 'X', label: '' }, options, { target: target.id, dial: dial });
 	},
 
 	timelineName(handle) {
@@ -548,6 +666,7 @@ module.exports = {
 				options: Object.assign({ mode: mode, value: 0, step_fine: fine, step_coarse: coarse, dial: dial }, options),
 			},
 		];
+		let valueOptions = self.dialValueOptions(actionId, options, dial);
 		return {
 			type: 'button',
 			category: category,
@@ -562,7 +681,8 @@ module.exports = {
 				bgcolor: combineRgb(0, 0, 0),
 			},
 			options: { rotaryActions: true },
-			feedbacks: [],
+			// per button value text; the style text above is only the fallback
+			feedbacks: valueOptions ? [{ feedbackId: 'dial_value', options: valueOptions }] : [],
 			steps: [
 				{
 					// press switches between fine and coarse steps, turning changes the value
@@ -604,7 +724,9 @@ module.exports = {
 			category: dial.category,
 			name: dial.name + ' (display below dial)',
 			style: Object.assign({}, dial.style),
-			feedbacks: [{ feedbackId: 'dial_coarse', options: { dial: toggle[0].options.dial }, style: COARSE_STYLE }],
+			feedbacks: dial.feedbacks.concat([
+				{ feedbackId: 'dial_coarse', options: { dial: toggle[0].options.dial }, style: COARSE_STYLE },
+			]),
 			steps: [{ down: toggle, up: [] }],
 		};
 		return result;
