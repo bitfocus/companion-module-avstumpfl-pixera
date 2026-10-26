@@ -263,6 +263,7 @@ module.exports = {
 				}
 			}//close callback
 		},//close livesystem state
+		...self.getDialFeedbacks(),
 	};//close feedbacks
 		self.setFeedbackDefinitions(feedbacks);
 	}

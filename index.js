@@ -4,6 +4,9 @@ const Pixera = require('./src/Pixera')
 const config = require('./src/config')
 const actions = require('./src/actions')
 const feedbacks = require('./src/feedbacks')
+const dials = require('./src/dials')
+const opacity = require('./src/opacity')
+const transform = require('./src/transform')
 
 class PixeraInstance extends InstanceBase {
 		constructor(internal) {
@@ -14,6 +17,9 @@ class PixeraInstance extends InstanceBase {
 				...config,
 				...actions,
 				...feedbacks,
+				...dials,
+				...opacity,
+				...transform,
 			})
 		}
 
@@ -51,6 +57,9 @@ class PixeraInstance extends InstanceBase {
 		self.INDEX_OUTPUT = 0;
 		self.INDEX_RESOURCE = 0;
 		self.INDEX_RESOURCEFOLDER = 0;
+		self.initDialSensitivity();
+		self.resetDialState();
+		self.updateDialVariableDefinitions();
 
 		await self.configUpdated(config);
 	}
