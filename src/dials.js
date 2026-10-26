@@ -11,6 +11,8 @@ const SELECTION_RETRY = 1000;
 const SELECTED = -1;
 // the selected timelines are polled every 100ms; their selected layers don't need to be asked that often
 const SELECTION_POLL_INTERVAL = 250;
+const DIAL_CATEGORY = 'Dials (Stream Deck+)';
+const DISPLAY_CATEGORY = 'Displays (Stream Deck+)';
 const COARSE_STYLE = { color: combineRgb(0, 0, 0), bgcolor: combineRgb(255, 140, 0) };
 
 // a poll reply that left Pixera before our last set would snap the value back,
@@ -679,6 +681,7 @@ module.exports = {
 				size: 'auto',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
+				show_topbar: false,
 			},
 			options: { rotaryActions: true },
 			// per button value text; the style text above is only the fallback
@@ -721,7 +724,8 @@ module.exports = {
 		let result = {};
 		result[id + '_display'] = {
 			type: 'button',
-			category: dial.category,
+			// displays get their own categories next to the dials
+			category: dial.category.replace(DIAL_CATEGORY, DISPLAY_CATEGORY),
 			name: dial.name + ' (display below dial)',
 			style: Object.assign({}, dial.style),
 			feedbacks: dial.feedbacks.concat([
@@ -740,7 +744,13 @@ module.exports = {
 			type: 'button',
 			category: category,
 			name: name,
-			style: { text: text, size: 'auto', color: combineRgb(255, 255, 255), bgcolor: combineRgb(0, 0, 0) },
+			style: {
+				text: text,
+				size: 'auto',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				show_topbar: false,
+			},
 			feedbacks: feedbacks || [],
 			steps: [{ down: down || [], up: [] }],
 		});
@@ -771,7 +781,7 @@ module.exports = {
 		let timelines = self.dialTimelineChoices();
 		for (let i = 0; i < timelines.length; i++) {
 			let timeline = timelines[i].id;
-			let category = 'Dials (Stream Deck+): ' + timelines[i].label;
+			let category = DIAL_CATEGORY + ': ' + timelines[i].label;
 			Object.assign(presets, self.opacityPresets(category, timeline));
 			let layers = self.TIMELINE_LAYERS[timeline] || [];
 			for (let k = 0; k < layers.length; k++) {
@@ -779,12 +789,12 @@ module.exports = {
 			}
 		}
 		// whatever is selected in Pixera, shown through the "last changed" variables
-		Object.assign(presets, self.selectedLayerPresets('Dials (Stream Deck+): Selected Layer'));
+		Object.assign(presets, self.selectedLayerPresets(DIAL_CATEGORY + ': Selected Layer'));
 		// every dial gets a display button to put below it (e.g. the display strip of a Stream Deck+ XL)
 		for (let id in presets) {
 			Object.assign(presets, self.dialDisplayPreset(id, presets[id]));
 		}
-		Object.assign(presets, self.displayPresets('Dials (Stream Deck+): Selected Layer'));
+		Object.assign(presets, self.displayPresets(DISPLAY_CATEGORY + ': Selected Layer'));
 		self.setPresetDefinitions(presets);
 	},
 };

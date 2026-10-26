@@ -46,7 +46,8 @@ Nativ implementation using Pixera JSON/TCP Api
 * Put Dial Sensitivity on press to switch between the fine and coarse step; give the dial the same Dial Name in all its actions
 * Presets: Dials (Stream Deck+) has ready-made dials per timeline: timeline opacity, and per layer opacity, position X/Y, size and rotation Z, plus a set of dials for the selected layer
 * Dial presets show their own value through the Dial Value feedback
-* Every dial preset has a matching display preset for the button below it (e.g. the display strip of a Stream Deck+ XL): same value text, orange on the coarse step, press switches fine/coarse
+* Every dial preset has a matching display preset for the button below it (e.g. the display strip of a Stream Deck+ XL), under Displays (Stream Deck+): same value text, orange on the coarse step, press switches fine/coarse
+* Dial and display presets hide the top bar so the value has the whole button
 * Display presets for the selected layer show the selected timeline, layer and its values
 * Steps are applied from the module's own copy of the value, so fast turns stay smooth
 * Position, size and rotation use the x/y/z parameters of the layer's Position, Scale (or Size) and Rotation nodes (API rev 481)
