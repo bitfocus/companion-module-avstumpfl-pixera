@@ -12,6 +12,7 @@ const RX_TIMEOUT = 8000;
 const CONNECT_GRACE = 30000;
 const REBUILD_BACKOFF_MAX = 60000;
 const DISCOVERY_RETRY = 15000;
+const LAYER_REFRESH = 10000;
 
 class Pixera {
 	constructor(instance, config) {
@@ -27,6 +28,7 @@ class Pixera {
 		this.nextRebuildAt = 0;
 		this.discoveryPending = true;
 		this.lastDiscovery = 0;
+		this.lastLayerRefresh = Date.now();
 		this.createSocket();
 		this.watchdog = setInterval(this.checkLink.bind(this), WATCHDOG_INTERVAL);
 	}
@@ -223,6 +225,11 @@ class Pixera {
 		}
 		// keeps traffic flowing so lastRx stays meaningful even when polling is off
 		this.send(1, 'Pixera.Utility.getApiRevision');
+		// pick up layers added or renamed in Pixera for the layer dropdowns
+		if (now - this.lastLayerRefresh > LAYER_REFRESH) {
+			this.lastLayerRefresh = now;
+			self.refreshTimelineLayers();
+		}
 		// discovery runs on connect, which can land before the engine is ready to
 		// answer; without this the dropdowns stay empty until a manual reconnect
 		if (this.discoveryPending && now - this.lastDiscovery > DISCOVERY_RETRY) {
@@ -319,6 +326,7 @@ class Pixera {
 				handle: self.CHOICES_LIVESYSTEMHANDLE[i],
 			});
 		}
+		self.pollDials();
 	}
 	initLiveSystems() {
 		let self = this.instance;
@@ -387,6 +395,7 @@ class Pixera {
 		self.INDEX_OUTPUT = 0;
 		self.INDEX_RESOURCE = 0;
 		self.INDEX_RESOURCEFOLDER = 0;
+		self.resetDialState();
 	}
 	initScreens() {
 		let self = this.instance;
@@ -399,6 +408,9 @@ class Pixera {
 			let jsonData = JSON.parse(data);
 			if (jsonData.id == undefined) {
 				self.log('debug', 'id is missing in rec data: ' + data);
+				return;
+			}
+			if (self.handleDialReply(jsonData)) {
 				return;
 			}
 			switch (jsonData.id) {
@@ -464,6 +476,9 @@ class Pixera {
 							}
 						}
 						self.updateActions();
+						self.requestTimelineLayers(handle);
+						// feedbacks, variables and presets need the timeline names too
+						self.scheduleDialRefresh();
 					}
 					break;
 				case 13: //Pixera.Screens.getScreens
@@ -1108,6 +1123,7 @@ class Pixera {
 						var result = jsonData.result;
 						if (result != null) {
 							self.SELECTEDTIMELINES = result;
+							self.selectionPolled();
 						}
 					}
 					break;
