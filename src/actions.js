@@ -736,19 +736,26 @@ module.exports = {
 					label: 'Channels',
 					id: 'livesystem_setaudiomaster_volume_channels',
 					default: '1,2',
+					useVariables: true,
 				},
 				{
 					type: 'textinput',
 					label: 'Volume',
 					id: 'livesystem_setaudiomaster_volume_value',
 					default: '1.0',
-					regex: self.REGEX_FLOAT,
+					useVariables: true,
 				},
 			],
 			callback: async (event) => {
 				let opt = event.options;
 
-				let channels = opt.livesystem_setaudiomaster_volume_channels.split(',');
+				let channelText = await self.parseVariablesInString(
+					opt.livesystem_setaudiomaster_volume_channels
+				);
+				let volume = parseFloat(
+					await self.parseVariablesInString(opt.livesystem_setaudiomaster_volume_value)
+				);
+				let channels = channelText.split(',');
 				for (let i = 0; i < channels.length; i++) {
 					self.pixera.sendParams(
 						0,
@@ -756,7 +763,7 @@ module.exports = {
 						{
 							handle: parseInt(opt.livesystem_setaudiomaster_volume_livesystem),
 							channel: parseInt(channels[i]),
-							volume: parseFloat(opt.livesystem_setaudiomaster_volume_value),
+							volume: volume,
 						}
 					);
 				}
@@ -4237,6 +4244,982 @@ module.exports = {
 				}
 			},
 		};
+
+		// programming actions. same request-id style as the older cue and layer calls.
+		let sendToTimelines = function (timelineId, method, extra) {
+			let handles = [];
+			if (parseInt(timelineId) == -1) {
+				handles = self.SELECTEDTIMELINES || [];
+			} else {
+				handles = [parseInt(timelineId)];
+			}
+			for (let i = 0; i < handles.length; i++) {
+				let params = { handle: handles[i] };
+				if (extra) {
+					for (let key in extra) {
+						params[key] = extra[key];
+					}
+				}
+				self.pixera.sendParams(0, method, params);
+			}
+		};
+
+		let cueList = [{ id: '', label: '-' }].concat(self.CHOICES_CUENAME || []);
+		let fpsOf = function (timelineId) {
+			let fps = 60;
+			for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
+				if (self.CHOICES_TIMELINEFEEDBACK[i]['handle'] == timelineId) {
+					let n = parseFloat(self.CHOICES_TIMELINEFEEDBACK[i]['fps']);
+					if (n) fps = n;
+					break;
+				}
+			}
+			return fps;
+		};
+		// dropdown wins unless a name is typed (typed names can be variables)
+		let resolveCue = async function (opt) {
+			let typed = (await self.parseVariablesInString(opt.cue_name || '')).trim();
+			if (typed) {
+				return { timeline: opt.timeline, name: typed };
+			}
+			if (opt.cue && String(opt.cue).indexOf('||') >= 0) {
+				let cut = String(opt.cue).indexOf('||');
+				return {
+					timeline: String(opt.cue).slice(0, cut),
+					name: String(opt.cue).slice(cut + 2),
+				};
+			}
+			return null;
+		};
+		let cueFields = [
+			{
+				type: 'dropdown',
+				label: 'Timeline',
+				id: 'timeline',
+				default: 0,
+				choices: self.CHOICES_TIMELINENAME,
+			},
+			{
+				type: 'dropdown',
+				label: 'Cue',
+				id: 'cue',
+				default: '',
+				choices: cueList,
+			},
+			{
+				type: 'textinput',
+				label: 'Or cue name',
+				id: 'cue_name',
+				default: '',
+				useVariables: true,
+			},
+		];
+		let editCue = function (timeline, name, calls) {
+			let handles = [];
+			if (parseInt(timeline) == -1) {
+				handles = self.SELECTEDTIMELINES || [];
+			} else {
+				handles = [parseInt(timeline)];
+			}
+			if (!self.CUE_JOBS) self.CUE_JOBS = {};
+			for (let i = 0; i < handles.length; i++) {
+				self.CUE_JOBS[handles[i]] = calls;
+				self.pixera.sendParams(130, 'Pixera.Timelines.Timeline.getCueFromName', {
+					handle: handles[i],
+					name: name,
+				});
+			}
+		};
+		let cueOptions = function (extra) {
+			let base = [];
+			for (let i = 0; i < cueFields.length; i++) {
+				base.push(Object.assign({}, cueFields[i]));
+			}
+			if (extra) {
+				for (let i = 0; i < extra.length; i++) base.push(extra[i]);
+			}
+			return base;
+		};
+		let targetsFor = function (timelineId) {
+			let out = [];
+			if (parseInt(timelineId) == -1) {
+				let picked = self.SELECTEDTIMELINES || [];
+				for (let i = 0; i < picked.length; i++) {
+					out.push({ handle: picked[i], fps: fpsOf(picked[i]) });
+				}
+			} else {
+				out.push({ handle: parseInt(timelineId), fps: fpsOf(timelineId) });
+			}
+			return out;
+		};
+		let fpsFromPath = function (path) {
+			let best = 0;
+			let fps = 60;
+			let timelines = self.CHOICES_TIMELINEFEEDBACK || [];
+			for (let i = 0; i < timelines.length; i++) {
+				let name = timelines[i].name;
+				if (!name || name == '0') continue;
+				if (path == name || path.indexOf(name + '.') == 0) {
+					if (name.length > best) {
+						best = name.length;
+						let n = parseFloat(timelines[i].fps);
+						if (n) fps = n;
+					}
+				}
+			}
+			return fps;
+		};
+
+		actions.fade_to_cue = {
+			name: 'Fade to Cue',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline',
+					id: 'timeline',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME,
+				},
+				{
+					type: 'dropdown',
+					label: 'Cue',
+					id: 'cue',
+					default: '',
+					choices: cueList,
+				},
+				{
+					type: 'textinput',
+					label: 'Or cue name',
+					id: 'cue_name',
+					default: '',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Fade (seconds)',
+					id: 'seconds',
+					default: '',
+					tooltip: 'Leave empty to use the fade already set in Pixera.',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let cue = await resolveCue(opt);
+				if (!cue) return;
+				let secondsText = (await self.parseVariablesInString(opt.seconds || '')).trim();
+				let extra = { name: cue.name };
+				if (secondsText !== '') {
+					extra.blendDuration = parseFloat(secondsText);
+				}
+				sendToTimelines(cue.timeline, 'Pixera.Timelines.Timeline.applyCueWithName', extra);
+			},
+		};
+
+		actions.goto_cue_number = {
+			name: 'Go to Cue Number',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline',
+					id: 'timeline',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue number',
+					id: 'number',
+					default: '1',
+					tooltip: '1, 1.2 or 1.2.3',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Fade (seconds)',
+					id: 'seconds',
+					default: '',
+					tooltip: 'Leave empty to use the fade already set in Pixera.',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let numberStr = (await self.parseVariablesInString(opt.number)).trim();
+				let secondsText = (await self.parseVariablesInString(opt.seconds || '')).trim();
+				let extra = { numberStr: numberStr };
+				if (secondsText !== '') {
+					extra.blendDuration = parseFloat(secondsText);
+				}
+				sendToTimelines(
+					opt.timeline,
+					'Pixera.Timelines.Timeline.applyCueWithNumberString',
+					extra
+				);
+			},
+		};
+
+		actions.default_fade = {
+			name: 'Default Fade Time',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Seconds',
+					id: 'seconds',
+					default: '1',
+					tooltip: 'This is the fade Pixera uses when a fade time is left empty.',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let seconds = parseFloat(await self.parseVariablesInString(event.options.seconds));
+				if (isNaN(seconds)) return;
+				self.pixera.sendParams(0, 'Pixera.Settings.SettingsGeneral.setFadeToTimeDuration', {
+					timeInMilliseconds: Math.round(seconds * 1000),
+				});
+			},
+		};
+
+		actions.layer_opacity_fade = {
+			name: 'Layer Opacity Fade',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Layer path',
+					id: 'layerPath',
+					default: 'Timeline 1.Layer 1',
+					tooltip: 'From Pixera 25.2 a group sits in the path: Timeline 1.Group.Layer 1',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Opacity',
+					id: 'opacity',
+					default: '1',
+					tooltip: '0 to 1',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Fade (ms)',
+					id: 'fade',
+					default: '500',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				self.LAYER_OPACITY = parseFloat(await self.parseVariablesInString(opt.opacity));
+				self.LAYER_OPACITY_FADE = parseInt(await self.parseVariablesInString(opt.fade));
+				if (isNaN(self.LAYER_OPACITY_FADE)) self.LAYER_OPACITY_FADE = 0;
+				let layerPath = await self.parseVariablesInString(opt.layerPath);
+				self.pixera.sendParams(73, 'Pixera.Timelines.Layer.getInst', {
+					instancePath: layerPath,
+				});
+			},
+		};
+
+		actions.workspace = {
+			name: 'Workspace',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 'toggle',
+					choices: [
+						{ id: '3', label: 'Outer compositing' },
+						{ id: '4', label: 'Inner compositing' },
+						{ id: 'toggle', label: 'Toggle inner / outer' },
+						{ id: '1', label: 'Screens (projectors)' },
+						{ id: '2', label: 'Mapping' },
+					],
+				},
+			],
+			callback: async (event) => {
+				if (event.options.mode == 'toggle') {
+					self.pixera.send(74, 'Pixera.Ui.getAppMode');
+					return;
+				}
+				self.pixera.sendParams(0, 'Pixera.Ui.setAppMode', {
+					mode: parseInt(event.options.mode),
+				});
+			},
+		};
+
+		actions.preview_camera = {
+			name: 'Preview Camera',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Camera',
+					id: 'camera',
+					default: 0,
+					tooltip: 'Same as keys 1 to 5 in the workspace.',
+					choices: [
+						{ id: 0, label: '1' },
+						{ id: 1, label: '2' },
+						{ id: 2, label: '3' },
+						{ id: 3, label: '4' },
+						{ id: 4, label: '5' },
+					],
+				},
+			],
+			callback: async (event) => {
+				self.pixera.sendParams(0, 'Pixera.Ui.PreviewCamera.selectPreviewCameraByIndex', {
+					index: parseInt(event.options.camera),
+				});
+			},
+		};
+
+		actions.outputs_active = {
+			name: 'Outputs Active',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Outputs',
+					id: 'active',
+					default: 'on',
+					choices: [
+						{ id: 'on', label: 'On (F5)' },
+						{ id: 'off', label: 'Off (Shift+Esc)' },
+					],
+				},
+			],
+			callback: async (event) => {
+				self.pixera.sendParams(0, 'Pixera.Session.setAllAssignedOutputs', {
+					active: event.options.active == 'on',
+				});
+			},
+		};
+
+		actions.testpattern = {
+			name: 'Test Pattern',
+			options: [
+				{
+					type: 'checkbox',
+					label: 'Show',
+					id: 'show',
+					default: true,
+				},
+			],
+			callback: async (event) => {
+				self.pixera.sendParams(0, 'Pixera.Ui.setDisplayTestpattern', {
+					display: event.options.show == true,
+				});
+			},
+		};
+
+		actions.on_screen_stats = {
+			name: 'On-Screen Statistics',
+			options: [],
+			callback: async () => {
+				self.pixera.send(0, 'Pixera.Session.toggleOnScreenStats');
+			},
+		};
+
+		actions.preview_edit = {
+			name: 'Preview Edit',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline',
+					id: 'timeline',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME,
+				},
+				{
+					type: 'dropdown',
+					label: 'Action',
+					id: 'what',
+					default: 'enter',
+					choices: [
+						{ id: 'enter', label: 'Enter edit mode' },
+						{ id: 'back', label: 'Back to playhead' },
+						{ id: 'take', label: 'Playhead to edit time' },
+					],
+				},
+				{
+					type: 'textinput',
+					label: 'Fade (seconds)',
+					id: 'seconds',
+					default: '',
+					tooltip: 'Only for playhead to edit time. Empty uses the fade set in Pixera.',
+					isVisible: (options) => options.what == 'take',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let handles = [];
+				if (parseInt(opt.timeline) == -1) {
+					handles = self.SELECTEDTIMELINES || [];
+				} else {
+					handles = [parseInt(opt.timeline)];
+				}
+
+				if (opt.what == 'enter') {
+					for (let i = 0; i < handles.length; i++) {
+						self.pixera.sendParams(97, 'Pixera.Timelines.Timeline.getCurrentTime', {
+							handle: handles[i],
+						});
+					}
+					return;
+				}
+
+				let paramsExtra = { moveToPreview: opt.what == 'take' };
+				if (opt.what == 'take') {
+					let secondsText = (await self.parseVariablesInString(opt.seconds || '')).trim();
+					if (secondsText !== '') {
+						paramsExtra.blendDurationInMs = Math.round(parseFloat(secondsText) * 1000);
+					}
+				}
+				for (let i = 0; i < handles.length; i++) {
+					let params = { handle: handles[i], moveToPreview: paramsExtra.moveToPreview };
+					if (paramsExtra.blendDurationInMs != undefined) {
+						params.blendDurationInMs = paramsExtra.blendDurationInMs;
+					}
+					self.pixera.sendParams(0, 'Pixera.Timelines.Timeline.endPreviewEdit', params);
+				}
+				self.PREVIEW_EDIT = 0;
+				self.setVariableValues({ preview_edit: 'Off' });
+				self.checkFeedbacks('preview_edit');
+			},
+		};
+
+		actions.fade_to_timecode = {
+			name: 'Fade to Timecode',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline',
+					id: 'timeline',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME,
+				},
+				{
+					type: 'textinput',
+					label: 'Hour',
+					id: 'h',
+					default: '0',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Minute',
+					id: 'm',
+					default: '0',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Second',
+					id: 's',
+					default: '0',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Frame',
+					id: 'f',
+					default: '0',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Fade (seconds)',
+					id: 'seconds',
+					default: '',
+					tooltip: 'Leave empty to use the fade set in Pixera. Blend To Timecode still uses frames.',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let hour = parseInt(await self.parseVariablesInString(opt.h));
+				let min = parseInt(await self.parseVariablesInString(opt.m));
+				let sec = parseInt(await self.parseVariablesInString(opt.s));
+				let frame = parseInt(await self.parseVariablesInString(opt.f));
+				let secondsText = (await self.parseVariablesInString(opt.seconds || '')).trim();
+				let targets = targetsFor(opt.timeline);
+				if (!self.FADE_JOBS) self.FADE_JOBS = [];
+				let needDefault = secondsText === '';
+				for (let i = 0; i < targets.length; i++) {
+					let fps = targets[i].fps;
+					let goal =
+						hour * 60 * 60 * fps + min * 60 * fps + sec * fps + frame;
+					if (needDefault) {
+						self.FADE_JOBS.push({
+							handle: targets[i].handle,
+							goalTime: goal,
+							fps: fps,
+						});
+					} else {
+						self.pixera.sendParams(0, 'Pixera.Timelines.Timeline.blendToTime', {
+							handle: targets[i].handle,
+							goalTime: goal,
+							blendDuration: parseFloat(secondsText) * fps,
+						});
+					}
+				}
+				if (needDefault && targets.length) {
+					self.pixera.send(110, 'Pixera.Settings.SettingsGeneral.getFadeToTimeDuration');
+				}
+			},
+		};
+
+		actions.timeline_fade = {
+			name: 'Timeline Fade',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline',
+					id: 'timeline',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME,
+				},
+				{
+					type: 'checkbox',
+					label: 'Fade in',
+					id: 'fade_in',
+					default: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Duration (seconds)',
+					id: 'seconds',
+					default: '1',
+					tooltip: 'A full fade from 0 to 1. Timeline Fade Opacity still uses frames.',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let seconds = parseFloat(await self.parseVariablesInString(opt.seconds));
+				let targets = targetsFor(opt.timeline);
+				for (let i = 0; i < targets.length; i++) {
+					self.pixera.sendParams(0, 'Pixera.Timelines.Timeline.startOpacityAnimation', {
+						handle: targets[i].handle,
+						fadeIn: opt.fade_in,
+						fullFadeDuration: seconds * targets[i].fps,
+					});
+				}
+			},
+		};
+
+		actions.cue_rename = {
+			name: 'Rename Cue',
+			options: cueOptions([
+				{
+					type: 'textinput',
+					label: 'New name',
+					id: 'new_name',
+					default: '',
+					useVariables: true,
+				},
+			]),
+			callback: async (event) => {
+				let opt = event.options;
+				let cue = await resolveCue(opt);
+				if (!cue) return;
+				let newName = (await self.parseVariablesInString(opt.new_name || '')).trim();
+				if (!newName) return;
+				editCue(cue.timeline, cue.name, [
+					{ method: 'Pixera.Timelines.Cue.setName', params: { name: newName } },
+				]);
+			},
+		};
+
+		actions.cue_color = {
+			name: 'Recolor Cue',
+			options: cueOptions([
+				{
+					type: 'colorpicker',
+					label: 'Color',
+					id: 'color',
+					default: 0x6699cc,
+				},
+			]),
+			callback: async (event) => {
+				let opt = event.options;
+				let cue = await resolveCue(opt);
+				if (!cue) return;
+				let c = parseInt(opt.color);
+				if (isNaN(c)) c = 0;
+				editCue(cue.timeline, cue.name, [
+					{
+						method: 'Pixera.Timelines.Cue.setColor',
+						params: {
+							red: (c >> 16) & 255,
+							green: (c >> 8) & 255,
+							blue: c & 255,
+						},
+					},
+				]);
+			},
+		};
+
+		actions.cue_move = {
+			name: 'Move Cue',
+			options: cueOptions([
+				{
+					type: 'checkbox',
+					label: 'To the playhead',
+					id: 'at_playhead',
+					default: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Or time (seconds)',
+					id: 'seconds',
+					default: '0',
+					useVariables: true,
+				},
+			]),
+			callback: async (event) => {
+				let opt = event.options;
+				let cue = await resolveCue(opt);
+				if (!cue) return;
+				if (opt.at_playhead) {
+					let handles = [];
+					if (parseInt(cue.timeline) == -1) handles = self.SELECTEDTIMELINES || [];
+					else handles = [parseInt(cue.timeline)];
+					if (!self.CUE_MOVE) self.CUE_MOVE = {};
+					for (let i = 0; i < handles.length; i++) {
+						self.CUE_MOVE[handles[i]] = { name: cue.name };
+						self.pixera.sendParams(131, 'Pixera.Timelines.Timeline.getCurrentTime', {
+							handle: handles[i],
+						});
+					}
+					return;
+				}
+				let seconds = parseFloat(await self.parseVariablesInString(opt.seconds));
+				let handles = [];
+				if (parseInt(cue.timeline) == -1) handles = self.SELECTEDTIMELINES || [];
+				else handles = [parseInt(cue.timeline)];
+				if (!self.CUE_JOBS) self.CUE_JOBS = {};
+				for (let i = 0; i < handles.length; i++) {
+					self.CUE_JOBS[handles[i]] = [
+						{
+							method: 'Pixera.Timelines.Cue.setTime',
+							params: { time: seconds * fpsOf(handles[i]) },
+						},
+					];
+					self.pixera.sendParams(130, 'Pixera.Timelines.Timeline.getCueFromName', {
+						handle: handles[i],
+						name: cue.name,
+					});
+				}
+			},
+		};
+
+		actions.cue_jump = {
+			name: 'Cue Jump Target',
+			options: cueOptions([
+				{
+					type: 'dropdown',
+					label: 'Jump to',
+					id: 'mode',
+					default: 1,
+					choices: [
+						{ id: 1, label: 'Time' },
+						{ id: 2, label: 'Cue' },
+						{ id: 0, label: 'None' },
+					],
+				},
+				{
+					type: 'textinput',
+					label: 'Time (seconds)',
+					id: 'seconds',
+					default: '0',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Cue name',
+					id: 'goal',
+					default: '',
+					useVariables: true,
+				},
+			]),
+			callback: async (event) => {
+				let opt = event.options;
+				let cue = await resolveCue(opt);
+				if (!cue) return;
+				let mode = parseInt(opt.mode);
+				if (mode == 1) {
+					let seconds = parseFloat(await self.parseVariablesInString(opt.seconds));
+					let handles = [];
+					if (parseInt(cue.timeline) == -1) handles = self.SELECTEDTIMELINES || [];
+					else handles = [parseInt(cue.timeline)];
+					if (!self.CUE_JOBS) self.CUE_JOBS = {};
+					for (let i = 0; i < handles.length; i++) {
+						self.CUE_JOBS[handles[i]] = [
+							{ method: 'Pixera.Timelines.Cue.setOperation', params: { operation: 4 } },
+							{ method: 'Pixera.Timelines.Cue.setJumpMode', params: { jumpMode: 1 } },
+							{
+								method: 'Pixera.Timelines.Cue.setJumpGoalTime',
+								params: { time: seconds * fpsOf(handles[i]) },
+							},
+						];
+						self.pixera.sendParams(130, 'Pixera.Timelines.Timeline.getCueFromName', {
+							handle: handles[i],
+							name: cue.name,
+						});
+					}
+					return;
+				}
+				let calls = [
+					{ method: 'Pixera.Timelines.Cue.setJumpMode', params: { jumpMode: mode } },
+				];
+				if (mode == 2) {
+					calls.unshift({
+						method: 'Pixera.Timelines.Cue.setOperation',
+						params: { operation: 4 },
+					});
+					let goal = (await self.parseVariablesInString(opt.goal || '')).trim();
+					calls.push({
+						method: 'Pixera.Timelines.Cue.setJumpGoalLabel',
+						params: { jumpGoalLabel: goal },
+					});
+				}
+				editCue(cue.timeline, cue.name, calls);
+			},
+		};
+
+		actions.cue_wait = {
+			name: 'Cue Wait',
+			options: cueOptions([
+				{
+					type: 'textinput',
+					label: 'Wait (seconds)',
+					id: 'seconds',
+					default: '1',
+					useVariables: true,
+				},
+			]),
+			callback: async (event) => {
+				let opt = event.options;
+				let cue = await resolveCue(opt);
+				if (!cue) return;
+				let seconds = parseFloat(await self.parseVariablesInString(opt.seconds));
+				let handles = [];
+				if (parseInt(cue.timeline) == -1) handles = self.SELECTEDTIMELINES || [];
+				else handles = [parseInt(cue.timeline)];
+				if (!self.CUE_JOBS) self.CUE_JOBS = {};
+				for (let i = 0; i < handles.length; i++) {
+					self.CUE_JOBS[handles[i]] = [
+						{
+							method: 'Pixera.Timelines.Cue.setWaitDuration',
+							params: { time: seconds * fpsOf(handles[i]) },
+						},
+					];
+					self.pixera.sendParams(130, 'Pixera.Timelines.Timeline.getCueFromName', {
+						handle: handles[i],
+						name: cue.name,
+					});
+				}
+			},
+		};
+
+		actions.cue_remove = {
+			name: 'Remove Cue',
+			options: cueOptions([]),
+			callback: async (event) => {
+				let cue = await resolveCue(event.options);
+				if (!cue) return;
+				editCue(cue.timeline, cue.name, [
+					{ method: 'Pixera.Timelines.Cue.removeThis', params: {} },
+				]);
+			},
+		};
+
+		actions.layer_volume = {
+			name: 'Layer Volume',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Layer path',
+					id: 'layer',
+					default: 'Timeline 1.Layer 1',
+					tooltip: 'Timeline.Layer, or Timeline.Group.Layer from Pixera 25.2.',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Volume',
+					id: 'volume',
+					default: '1',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Fade (seconds)',
+					id: 'seconds',
+					default: '',
+					tooltip: 'Leave empty for an instant change.',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let path = await self.parseVariablesInString(opt.layer);
+				let volume = parseFloat(await self.parseVariablesInString(opt.volume));
+				let secondsText = (await self.parseVariablesInString(opt.seconds || '')).trim();
+				self.LAYER_VOLUME = volume;
+				self.LAYER_VOLUME_FADE = secondsText === '' ? 0 : parseFloat(secondsText) * 1000;
+				self.pixera.sendParams(140, 'Pixera.Timelines.Layer.getInst', {
+					instancePath: path,
+				});
+			},
+		};
+
+		actions.clip_resource = {
+			name: 'Resource on Clip',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Layer path',
+					id: 'layer',
+					default: 'Timeline 1.Layer 1',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Resource path',
+					id: 'resource',
+					default: 'Media/file.mov',
+					tooltip: 'Folder path with slashes, for example Media/Folder/file.mov.',
+					useVariables: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Set clip length to the resource',
+					id: 'fit',
+					default: false,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				self.CLIP_RES = {
+					layerPath: await self.parseVariablesInString(opt.layer),
+					setDuration: !!opt.fit,
+					resId: null,
+				};
+				self.pixera.sendParams(142, 'Pixera.Resources.Resource.getInst', {
+					instancePath: await self.parseVariablesInString(opt.resource),
+				});
+			},
+		};
+
+		actions.clip_place = {
+			name: 'Place Clip',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Timeline',
+					id: 'timeline',
+					default: 0,
+					choices: self.CHOICES_TIMELINENAME,
+					tooltip: 'Used when the clip goes on the playhead.',
+				},
+				{
+					type: 'textinput',
+					label: 'Layer path',
+					id: 'layer',
+					default: 'Timeline 1.Layer 1',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Resource path',
+					id: 'resource',
+					default: 'Media/file.mov',
+					useVariables: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'At the playhead',
+					id: 'at_playhead',
+					default: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Or time (seconds)',
+					id: 'seconds',
+					default: '0',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let layerPath = await self.parseVariablesInString(opt.layer);
+				let resourcePath = await self.parseVariablesInString(opt.resource);
+				if (opt.at_playhead) {
+					let handles = [];
+					if (parseInt(opt.timeline) == -1) handles = self.SELECTEDTIMELINES || [];
+					else handles = [parseInt(opt.timeline)];
+					if (!handles.length) return;
+					self.PLACE_CLIP = { layerPath: layerPath, resourcePath: resourcePath };
+					self.pixera.sendParams(150, 'Pixera.Timelines.Timeline.getCurrentTime', {
+						handle: handles[0],
+					});
+					return;
+				}
+				let seconds = parseFloat(await self.parseVariablesInString(opt.seconds));
+				self.pixera.sendParams(0, 'Pixera.Compound.createClipOnLayerAtTimeWithResource', {
+					layerPath: layerPath,
+					time: seconds * fpsFromPath(layerPath),
+					resourcePath: resourcePath,
+				});
+			},
+		};
+
+		actions.clip_duration = {
+			name: 'Clip Duration',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Layer path',
+					id: 'layer',
+					default: 'Timeline 1.Layer 1',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Duration (seconds)',
+					id: 'seconds',
+					default: '',
+					tooltip: 'Sets the length of the clip under the playhead. Leave empty to add frames instead.',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Add frames',
+					id: 'frames',
+					default: '0',
+					tooltip: 'Used when duration is empty. Negative shortens the clip.',
+					useVariables: true,
+				},
+			],
+			callback: async (event) => {
+				let opt = event.options;
+				let layer = await self.parseVariablesInString(opt.layer);
+				let secondsText = (await self.parseVariablesInString(opt.seconds || '')).trim();
+				self.CLIP_LEN = { clip: null };
+				if (secondsText !== '') {
+					self.CLIP_LEN.mode = 'set';
+					self.CLIP_LEN.frames = parseFloat(secondsText) * fpsFromPath(layer);
+				} else {
+					self.CLIP_LEN.mode = 'add';
+					self.CLIP_LEN.addFrames = parseFloat(await self.parseVariablesInString(opt.frames));
+				}
+				self.pixera.sendParams(147, 'Pixera.Timelines.Layer.getInst', {
+					instancePath: layer,
+				});
+			},
+		};
+
 		//set the actions
 		//self.log('debug', 'set actions')
 		self.setActionDefinitions(actions);

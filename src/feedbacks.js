@@ -1,9 +1,29 @@
 const { combineRgb } = require('@companion-module/base')
 module.exports = {
-	initFeedbacks() {
-		
-		let self = this;
+	initFeedbacks() { 
+ 
+		let self = this; 
 		const formatTwoDigits = (value) => (value < 10 ? '0' : '') + value.toString();
+		// empty name means the timeline selected in Pixera
+		const findTimeline = (name) => {
+			if (!name) {
+				let picked = self.SELECTEDTIMELINES || [];
+				for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
+					for (let s = 0; s < picked.length; s++) {
+						if (self.CHOICES_TIMELINEFEEDBACK[i]['handle'] == picked[s]) {
+							return self.CHOICES_TIMELINEFEEDBACK[i];
+						}
+					}
+				}
+				return null;
+			}
+			for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
+				if (self.CHOICES_TIMELINEFEEDBACK[i]['name'] == name) {
+					return self.CHOICES_TIMELINEFEEDBACK[i];
+				}
+			}
+			return null;
+		};
 		//self.log('debug', 'init feedbacks');
 		let feedbacks = {
 			timeline_state:{
@@ -263,6 +283,297 @@ module.exports = {
 				}
 			}//close callback
 		},//close livesystem state
+		running_time: {
+			type: 'advanced',
+			name: 'Running time',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Timeline name',
+					id: 'timeline',
+					default: '',
+					tooltip: 'Leave empty for the timeline selected in Pixera.',
+				},
+			],
+			callback: function (feedback) {
+				let tl = findTimeline(feedback.options.timeline);
+				if (!tl) return { text: '--:--:--:--' };
+				return { text: self.framesToHmsf(tl.timelinePositions, tl.fps) };
+			},
+		},
+		time_to_next_cue: {
+			type: 'advanced',
+			name: 'Time to next cue',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Timeline name',
+					id: 'timeline',
+					default: '',
+					tooltip: 'Leave empty for the timeline selected in Pixera.',
+				},
+			],
+			callback: function (feedback) {
+				let tl = findTimeline(feedback.options.timeline);
+				if (!tl) return { text: '--:--:--:--' };
+				return { text: self.framesToHmsf(tl.timelineCountdowns, tl.fps) };
+			},
+		},
+		active_timeline: {
+			type: 'advanced',
+			name: 'Active timeline',
+			options: [],
+			callback: function () {
+				let names = [];
+				let picked = self.SELECTEDTIMELINES || [];
+				for (let i = 0; i < self.CHOICES_TIMELINEFEEDBACK.length; i++) {
+					for (let s = 0; s < picked.length; s++) {
+						if (self.CHOICES_TIMELINEFEEDBACK[i]['handle'] == picked[s]) {
+							names.push(self.CHOICES_TIMELINEFEEDBACK[i]['name']);
+						}
+					}
+				}
+				if (!names.length) return { text: '-' };
+				return { text: names.join(', ') };
+			},
+		},
+		workspace_mode: {
+			type: 'advanced',
+			name: 'Workspace',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 3,
+					choices: [
+						{ id: 3, label: 'Outer compositing' },
+						{ id: 4, label: 'Inner compositing' },
+						{ id: 1, label: 'Screens (projectors)' },
+						{ id: 2, label: 'Mapping' },
+					],
+				},
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: combineRgb(255, 255, 255),
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: combineRgb(0, 80, 140),
+				},
+			],
+			callback: function (feedback) {
+				if (self.APP_MODE == feedback.options.mode) {
+					return {
+						color: feedback.options.fg,
+						bgcolor: feedback.options.bg,
+					};
+				}
+			},
+		},
+		transport_play: {
+			type: 'advanced',
+			name: 'Playing',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Timeline name',
+					id: 'timeline',
+					default: '',
+					tooltip: 'Leave empty for the timeline selected in Pixera.',
+				},
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: combineRgb(255, 255, 255),
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: combineRgb(0, 140, 0),
+				},
+			],
+			callback: function (feedback) {
+				let tl = findTimeline(feedback.options.timeline);
+				if (tl && tl.timelineTransport == 1) {
+					return { color: feedback.options.fg, bgcolor: feedback.options.bg };
+				}
+			},
+		},
+		transport_pause: {
+			type: 'advanced',
+			name: 'Paused',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Timeline name',
+					id: 'timeline',
+					default: '',
+					tooltip: 'Leave empty for the timeline selected in Pixera.',
+				},
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: combineRgb(0, 0, 0),
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: combineRgb(255, 200, 0),
+				},
+			],
+			callback: function (feedback) {
+				let tl = findTimeline(feedback.options.timeline);
+				if (tl && tl.timelineTransport == 2) {
+					return { color: feedback.options.fg, bgcolor: feedback.options.bg };
+				}
+			},
+		},
+		transport_stop: {
+			type: 'advanced',
+			name: 'Stopped',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Timeline name',
+					id: 'timeline',
+					default: '',
+					tooltip: 'Leave empty for the timeline selected in Pixera.',
+				},
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: combineRgb(255, 255, 255),
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: combineRgb(160, 0, 0),
+				},
+			],
+			callback: function (feedback) {
+				let tl = findTimeline(feedback.options.timeline);
+				if (tl && tl.timelineTransport == 3) {
+					return { color: feedback.options.fg, bgcolor: feedback.options.bg };
+				}
+			},
+		},
+		countdown_under: {
+			type: 'advanced',
+			name: 'Countdown under N seconds',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Timeline name',
+					id: 'timeline',
+					default: '',
+					tooltip: 'Leave empty for the timeline selected in Pixera.',
+				},
+				{
+					type: 'textinput',
+					label: 'Seconds',
+					id: 'seconds',
+					default: '5',
+				},
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: combineRgb(0, 0, 0),
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: combineRgb(255, 140, 0),
+				},
+			],
+			callback: function (feedback) {
+				let tl = findTimeline(feedback.options.timeline);
+				if (!tl) return;
+				if (tl.countdownFlag != 1 && tl.countdownFlag != 2) return;
+				let fps = parseFloat(tl.fps);
+				let frames = parseFloat(tl.timelineCountdowns);
+				let limit = parseFloat(feedback.options.seconds);
+				if (!fps || isNaN(frames) || isNaN(limit)) return;
+				if (frames / fps < limit) {
+					return { color: feedback.options.fg, bgcolor: feedback.options.bg };
+				}
+			},
+		},
+		next_cue: {
+			type: 'advanced',
+			name: 'Next cue name',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Timeline name',
+					id: 'timeline',
+					default: '',
+					tooltip: 'Leave empty for the timeline selected in Pixera.',
+				},
+			],
+			callback: function (feedback) {
+				let tl = findTimeline(feedback.options.timeline);
+				if (!tl || !tl.nextCueName) return { text: '-' };
+				return { text: tl.nextCueName };
+			},
+		},
+		prev_cue: {
+			type: 'advanced',
+			name: 'Previous cue name',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Timeline name',
+					id: 'timeline',
+					default: '',
+					tooltip: 'Leave empty for the timeline selected in Pixera.',
+				},
+			],
+			callback: function (feedback) {
+				let tl = findTimeline(feedback.options.timeline);
+				if (!tl || !tl.prevCueName) return { text: '-' };
+				return { text: tl.prevCueName };
+			},
+		},
+		preview_edit: {
+			type: 'advanced',
+			name: 'Edit mode',
+			options: [
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: combineRgb(0, 0, 0),
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: combineRgb(255, 180, 0),
+				},
+			],
+			callback: function (feedback) {
+				let mode = self.PREVIEW_EDIT;
+				if (mode == 1 || mode == 2 || mode == 3) {
+					return {
+						color: feedback.options.fg,
+						bgcolor: feedback.options.bg,
+					};
+				}
+			},
+		},
 	};//close feedbacks
 		self.setFeedbackDefinitions(feedbacks);
 	}
